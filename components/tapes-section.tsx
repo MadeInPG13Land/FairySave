@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
+import { assetPath } from '@/lib/asset-path';
 
 interface TapeOption {
   value: string;
@@ -246,7 +247,7 @@ export function TapesSection({ tapes, logs, onTapesChange, onLogsChange }: Tapes
       audioRef.current = null;
     }
 
-    const audio = new Audio(option.audioSrc);
+    const audio = new Audio(assetPath(option.audioSrc));
     audio.volume = volume / 100;
     audioRef.current = audio;
     setActiveTape(option.value);
