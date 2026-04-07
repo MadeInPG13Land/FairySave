@@ -1,0 +1,14 @@
+node_modules/
+.next/
+out/
+dist/
+
+*.log
+next.stderr.log
+next.stdout.log
+vite.stderr.log
+vite.stdout.log
+
+*.tsbuildinfo
+
+zip_frontend/
