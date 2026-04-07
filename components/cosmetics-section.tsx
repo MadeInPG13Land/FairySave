@@ -13,6 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { assetPath } from '@/lib/asset-path';
 import { cn } from '@/lib/utils';
 
 interface CosmeticsSectionProps {
@@ -136,7 +137,11 @@ function CosmeticGroup({
             >
               <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md border border-white/8 bg-black/15">
                 {item.imageSrc ? (
-                  <img src={item.imageSrc} alt={item.label} className="h-full w-full object-contain" />
+                  <img
+                    src={assetPath(item.imageSrc)}
+                    alt={item.label}
+                    className="h-full w-full object-contain"
+                  />
                 ) : (
                   <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                     ?

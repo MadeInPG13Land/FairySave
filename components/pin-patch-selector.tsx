@@ -6,6 +6,7 @@ import {
   SelectItem,
   SelectTrigger,
 } from '@/components/ui/select';
+import { assetPath } from '@/lib/asset-path';
 import { cn } from '@/lib/utils';
 
 interface CosmeticOption {
@@ -114,7 +115,11 @@ function CosmeticThumb({ option, kind }: { option: CosmeticOption; kind: SlotKin
         kind === 'pin' ? 'border-primary/15' : 'border-accent/15',
       )}
     >
-      <img src={option.imageSrc} alt={option.label} className="h-full w-full object-contain" />
+      <img
+        src={assetPath(option.imageSrc)}
+        alt={option.label}
+        className="h-full w-full object-contain"
+      />
     </div>
   );
 }
@@ -147,7 +152,7 @@ function SlotRow({ kind, slotNumber, value, onChange }: SlotRowProps) {
                 <span className="flex items-center gap-2">
                   {opt.imageSrc ? (
                     <img
-                      src={opt.imageSrc}
+                      src={assetPath(opt.imageSrc)}
                       alt={opt.label}
                       className="h-6 w-6 rounded-sm border border-white/8 bg-black/10 object-contain"
                     />
