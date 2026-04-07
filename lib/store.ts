@@ -260,6 +260,92 @@ async function pickSaveFile() {
   return openSaveFileWithInput();
 }
 
+async function applyLoadedFile(
+  file: File,
+  handle: FileSystemFileHandle | null,
+  options: { requestWriteAccess?: boolean } | undefined,
+  setState: (updater: (state: EditorStore) => Partial<EditorStore>) => void,
+  getState: () => EditorStore,
+) {
+  let fileAccessStatus = await getFileAccessStatus(handle);
+  if (options?.requestWriteAccess && handle) {
+    fileAccessStatus = await ensureDirectSaveAccess(handle);
+  }
+
+  try {
+    const rawInput = await file.text();
+    const bytes = decodeBase64(rawInput);
+    const decryptedText = await decryptSave(bytes);
+    const parsed = parseSaveJson(decryptedText);
+    const section = detectSection(parsed);
+
+    setState((state) => ({
+      tabs: updateTab(state.tabs, state.activeTabId, (tab) => {
+        if (section === EditorSection.Player) {
+          return {
+            ...tab,
+            fileName: file.name,
+            fileHandle: handle,
+            fileAccessStatus,
+            fileStatus: FileStatus.Decrypted,
+            playerData: parsed as unknown as PlayerData,
+            worldData: null,
+            rawJson: formatSaveJson(parsed as JsonObject),
+            lastAction: handle ? 'Opened and decrypted player save' : 'Loaded and decrypted player save',
+            jsonMode: false,
+            isModified: false,
+          };
+        }
+
+        if (section === EditorSection.World) {
+          return {
+            ...tab,
+            fileName: file.name,
+            fileHandle: handle,
+            fileAccessStatus,
+            fileStatus: FileStatus.Decrypted,
+            playerData: null,
+            worldData: parsed as unknown as WorldData,
+            rawJson: formatSaveJson(parsed as JsonObject),
+            lastAction: handle ? 'Opened and decrypted world save' : 'Loaded and decrypted world save',
+            jsonMode: false,
+            isModified: false,
+          };
+        }
+
+        return {
+          ...tab,
+          fileName: file.name,
+          fileHandle: handle,
+          fileAccessStatus,
+          fileStatus: FileStatus.Decrypted,
+          playerData: null,
+          worldData: null,
+          rawJson: formatSaveJson(parsed as JsonObject),
+          lastAction: handle ? 'Opened JSON save data' : 'Loaded JSON save data',
+          jsonMode: true,
+          isModified: false,
+        };
+      }),
+    }));
+
+    if (handle) {
+      await saveFileHandle(getState().activeTabId, handle);
+    }
+  } catch (error) {
+    setState((state) => ({
+      tabs: updateTab(state.tabs, state.activeTabId, (tab) => ({
+        ...tab,
+        fileName: file.name,
+        fileHandle: handle,
+        fileAccessStatus,
+        fileStatus: FileStatus.Error,
+        lastAction: error instanceof Error ? error.message : 'Failed to load save file',
+      })),
+    }));
+  }
+}
+
 interface EditorStore {
   tabs: EditorTab[];
   activeTabId: string;
@@ -272,6 +358,7 @@ interface EditorStore {
   setJsonMode: (enabled: boolean) => void;
   setRawJson: (json: string) => void;
   loadSampleData: (options?: { requestWriteAccess?: boolean }) => void;
+  loadLocalFile: (file: File) => void;
   reconnectActiveFile: () => void;
   refreshActiveFile: () => Promise<void>;
   clearData: () => void;
@@ -429,84 +516,12 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         return;
       }
 
-      const { file, handle } = picked;
-      let fileAccessStatus = await getFileAccessStatus(handle);
-      if (options?.requestWriteAccess && handle) {
-        fileAccessStatus = await ensureDirectSaveAccess(handle);
-      }
-
-      try {
-        const rawInput = await file.text();
-        const bytes = decodeBase64(rawInput);
-        const decryptedText = await decryptSave(bytes);
-        const parsed = parseSaveJson(decryptedText);
-        const section = detectSection(parsed);
-
-        set((state) => ({
-          tabs: updateTab(state.tabs, state.activeTabId, (tab) => {
-            if (section === EditorSection.Player) {
-              return {
-                ...tab,
-                fileName: file.name,
-                fileHandle: handle,
-                fileAccessStatus,
-                fileStatus: FileStatus.Decrypted,
-                playerData: parsed as unknown as PlayerData,
-                worldData: null,
-                rawJson: formatSaveJson(parsed as JsonObject),
-                lastAction: handle ? 'Opened and decrypted player save' : 'Loaded and decrypted player save',
-                jsonMode: false,
-                isModified: false,
-              };
-            }
-
-            if (section === EditorSection.World) {
-              return {
-                ...tab,
-                fileName: file.name,
-                fileHandle: handle,
-                fileAccessStatus,
-                fileStatus: FileStatus.Decrypted,
-                playerData: null,
-                worldData: parsed as unknown as WorldData,
-                rawJson: formatSaveJson(parsed as JsonObject),
-                lastAction: handle ? 'Opened and decrypted world save' : 'Loaded and decrypted world save',
-                jsonMode: false,
-                isModified: false,
-              };
-            }
-
-              return {
-                ...tab,
-                fileName: file.name,
-                fileHandle: handle,
-                fileAccessStatus,
-                fileStatus: FileStatus.Decrypted,
-                playerData: null,
-                worldData: null,
-                rawJson: formatSaveJson(parsed as JsonObject),
-              lastAction: handle ? 'Opened JSON save data' : 'Loaded JSON save data',
-              jsonMode: true,
-              isModified: false,
-            };
-          }),
-        }));
-        if (handle) {
-          await saveFileHandle(get().activeTabId, handle);
-        }
-      } catch (error) {
-        set((state) => ({
-          tabs: updateTab(state.tabs, state.activeTabId, (tab) => ({
-            ...tab,
-            fileName: file.name,
-            fileHandle: handle,
-            fileAccessStatus,
-            fileStatus: FileStatus.Error,
-            lastAction: error instanceof Error ? error.message : 'Failed to load save file',
-          })),
-        }));
-      }
+      await applyLoadedFile(picked.file, picked.handle, options, set, get);
     })();
+  },
+
+  loadLocalFile: (file) => {
+    void applyLoadedFile(file, null, undefined, set, get);
   },
 
   reconnectActiveFile: () => {
