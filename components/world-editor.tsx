@@ -112,24 +112,24 @@ const poiOptions = [
 ] as const;
 
 const ITEM_OPTIONS = [
-  { value: 'lantern', label: 'Lantern', itemDataName: 'Lantern', itemName: 'lantern' },
-  { value: 'walkie-talkie', label: 'Walkie-Talkie', itemDataName: 'WalkieTalkie', itemName: 'walkie-talkie' },
-  { value: 'stunlight', label: 'Stunlight', itemDataName: 'StunLight', itemName: 'stunlight' },
-  { value: 'flashlight', label: 'Flashlight', itemDataName: 'Flashlight', itemName: 'flashlight' },
-  { value: 'defib', label: 'Defib', itemDataName: 'Defib', itemName: 'defib' },
-  { value: 'adrenaline-shot', label: 'Adrenaline Shot', itemDataName: 'Adrenaline Shot', itemName: 'Adrenaline Shot' },
-  { value: 'boltcutters', label: 'Boltcutters', itemDataName: 'Buoltcutters', itemName: 'boltcutters' },
-  { value: 'medkit', label: 'Medkit', itemDataName: 'FirstAidKit', itemName: 'medkit' },
-  { value: 'environment-marker', label: 'Environment Marker', itemDataName: 'SprayMark', itemName: 'environment marker' },
-  { value: 'firecrackers', label: 'Firecrackers', itemDataName: 'Firecrackers', itemName: 'firecrackers' },
-  { value: 'glowstick', label: 'Glowstick', itemDataName: 'Glowstick', itemName: 'glowstick' },
-  { value: 'gasmask', label: 'Gasmask', itemDataName: 'Gasmask', itemName: 'gasmask' },
-  { value: 'pickaxe', label: 'Pickaxe', itemDataName: 'Pickaxe', itemName: 'pickaxe' },
-  { value: 'soda', label: 'Soda Can', itemDataName: 'Noisemaker (soda can)', itemName: 'soda' },
-  { value: 'rebreather', label: 'Rebreather', itemDataName: 'Rebreather', itemName: 'rebreather' },
-  { value: 'dynamite', label: 'Dynamite', itemDataName: 'Dynamite', itemName: 'dynamite' },
-  { value: 'shotgun', label: 'Shotgun', itemDataName: 'Shotgun', itemName: 'shotgun' },
-  { value: 'sledgehammer', label: 'Sledgehammer', itemDataName: 'SledgeHammer', itemName: 'sledgehammer' },
+  { value: 'lantern', label: 'Lantern', itemDataName: 'Lantern', itemName: 'lantern', saleItemName: 'lantern' },
+  { value: 'walkie-talkie', label: 'Walkie-Talkie', itemDataName: 'WalkieTalkie', itemName: 'walkie-talkie', saleItemName: 'walkietalkie' },
+  { value: 'stunlight', label: 'Stunlight', itemDataName: 'StunLight', itemName: 'stunlight', saleItemName: 'stunlight' },
+  { value: 'flashlight', label: 'Flashlight', itemDataName: 'Flashlight', itemName: 'flashlight', saleItemName: 'flashlight' },
+  { value: 'defib', label: 'Defib', itemDataName: 'Defib', itemName: 'defib', saleItemName: 'defib' },
+  { value: 'adrenaline-shot', label: 'Adrenaline Shot', itemDataName: 'Adrenaline Shot', itemName: 'adrenaline', saleItemName: 'adrenaline' },
+  { value: 'boltcutters', label: 'Boltcutters', itemDataName: 'Buoltcutters', itemName: 'boltcutters', saleItemName: 'boltcutters' },
+  { value: 'medkit', label: 'Medkit', itemDataName: 'FirstAidKit', itemName: 'medkit', saleItemName: 'medkit' },
+  { value: 'environment-marker', label: 'Environment Marker', itemDataName: 'SprayMark', itemName: 'environment marker', saleItemName: 'spraymark' },
+  { value: 'firecrackers', label: 'Firecrackers', itemDataName: 'Firecrackers', itemName: 'firecrackers', saleItemName: 'firecrackers' },
+  { value: 'glowstick', label: 'Glowstick', itemDataName: 'Glowstick', itemName: 'glowstick', saleItemName: 'glowstick' },
+  { value: 'gasmask', label: 'Gasmask', itemDataName: 'Gasmask', itemName: 'gasmask', saleItemName: 'gasmask' },
+  { value: 'pickaxe', label: 'Pickaxe', itemDataName: 'Pickaxe', itemName: 'pickaxe', saleItemName: 'pickaxe' },
+  { value: 'soda', label: 'Soda Can', itemDataName: 'Noisemaker (soda can)', itemName: 'soda', saleItemName: 'soda' },
+  { value: 'rebreather', label: 'Rebreather', itemDataName: 'Rebreather', itemName: 'rebreather', saleItemName: 'rebreather' },
+  { value: 'dynamite', label: 'Dynamite', itemDataName: 'Dynamite', itemName: 'dynamite', saleItemName: 'dynamite' },
+  { value: 'shotgun', label: 'Shotgun', itemDataName: 'Shotgun', itemName: 'shotgun', saleItemName: 'shotgun' },
+  { value: 'sledgehammer', label: 'Sledgehammer', itemDataName: 'SledgeHammer', itemName: 'sledgehammer', saleItemName: 'sledgehammer' },
 ] as const;
 
 const ITEM_ICON_MAP: Record<string, string> = {
@@ -860,16 +860,19 @@ export function WorldEditor() {
               {safeSaleItems.map((item, index) => (
                 <div key={`${item.itemName}-${index}`} className="rounded-lg border border-white/8 bg-black/15 p-3">
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_220px_auto] md:items-end">
-                    <FormField
-                      type="select"
-                      label="Item"
-                      value={String(item.itemName ?? '')}
-                      onChange={(value) => updateSaleItem(index, 'itemName', value)}
-                      options={ITEM_OPTIONS.map((option) => ({
-                        value: option.itemName,
-                        label: option.label,
-                      }))}
-                    />
+                      <FormField
+                        type="select"
+                        label="Item"
+                        value={String(item.itemName ?? '')}
+                        onChange={(value) => updateSaleItem(index, 'itemName', value)}
+                                  options={ITEM_OPTIONS.map((option) => ({
+                                    value: option.saleItemName,
+                                    label: option.label,
+                                  }))}
+                        showIndicator={false}
+                        itemTone="neutral"
+                        spacedItems={true}
+                      />
                     <FormField type="number" label="Sale" value={Number(item.salePercent ?? 0)} onChange={(value) => updateSaleItem(index, 'salePercent', value)} min={0} max={100} suffix="%" />
                     <Button variant="ghost" size="icon" className="h-9 w-9 self-end text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => removeSaleItem(index)}>
                       <Trash2 className="h-4 w-4" />
@@ -997,6 +1000,9 @@ export function WorldEditor() {
                         description="The modifier shown on the destination before the trip begins."
                         value={baseValue}
                         onChange={(value) => setField(field.baseKey, Number(value))}
+                        showIndicator={false}
+                        itemTone="neutral"
+                        spacedItems={true}
                         options={worldModifierOptions.map((option) => ({
                           value: option.value,
                           label: renderModifierOptionLabel(option.value),
@@ -1011,6 +1017,9 @@ export function WorldEditor() {
                         description="The resolved modifier the game actually applies when this destination is travelled to."
                         value={effectiveValue}
                         onChange={(value) => setField(field.effectiveKey, Number(value))}
+                        showIndicator={false}
+                        itemTone="neutral"
+                        spacedItems={true}
                         options={worldModifierOptions.map((option) => ({
                           value: option.value,
                           label: renderModifierOptionLabel(option.value),
