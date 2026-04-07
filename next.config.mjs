@@ -1,18 +1,18 @@
 /** @type {import('next').NextConfig} */
-const isProduction = process.env.NODE_ENV === 'production'
-const repoName = 'FairySave'
-const basePath = isProduction ? `/${repoName}` : ''
+const isGitHubPages = process.env.GITHUB_PAGES === 'true';
+const repoName = 'FairySave';
 
 const nextConfig = {
   output: 'export',
-  basePath,
-  assetPrefix: basePath,
-  env: {
-    NEXT_PUBLIC_BASE_PATH: basePath,
-  },
   images: {
     unoptimized: true,
   },
-}
+  ...(isGitHubPages
+    ? {
+        basePath: `/${repoName}`,
+        assetPrefix: `/${repoName}/`,
+      }
+    : {}),
+};
 
-export default nextConfig
+export default nextConfig;
