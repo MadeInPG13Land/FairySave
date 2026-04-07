@@ -182,14 +182,14 @@ export function EmptyTabState() {
           <DialogHeader>
             <DialogTitle>Open with file editing</DialogTitle>
             <DialogDescription className="text-sm leading-6 text-muted-foreground">
-              FairySaveTool can ask Brave for permission to edit the original save file directly,
-              so later saves can write back in place instead of downloading a new file every time.
+              FairySaveTool can ask your browser for permission to save directly back to the same
+              file.
             </DialogDescription>
           </DialogHeader>
 
           <div className="rounded-lg border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-muted-foreground">
-            After you pick the file, Brave may show a second permission prompt for file access.
-            If you allow it, this tab can use direct save and future reload-from-disk features.
+            After you pick the file, your browser may ask for file access. If you allow it, this
+            tab can save and refresh using the original file instead of downloading a new one.
           </div>
 
           <DialogFooter className="gap-2 sm:justify-end">
