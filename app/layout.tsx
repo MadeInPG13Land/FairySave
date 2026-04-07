@@ -11,19 +11,28 @@ export const metadata: Metadata = {
   title: 'FairySaveTool - Forsaken Frontiers Save Editor',
   description: 'A browser-based save editor for Forsaken Frontiers. Decrypt, edit, and re-encrypt your game save files with a friendly UI.',
   generator: 'v0.app',
+  manifest: `${basePath}/site.webmanifest`,
   icons: {
     icon: [
       {
+        url: `${basePath}/favicon.ico`,
+      },
+      {
+        url: `${basePath}/favicon-16x16.png`,
+        sizes: '16x16',
+        type: 'image/png',
+      },
+      {
         url: `${basePath}/icon-light-32x32.png`,
+        sizes: '32x32',
+        type: 'image/png',
         media: '(prefers-color-scheme: light)',
       },
       {
         url: `${basePath}/icon-dark-32x32.png`,
+        sizes: '32x32',
+        type: 'image/png',
         media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: `${basePath}/icon.svg`,
-        type: 'image/svg+xml',
       },
     ],
     apple: `${basePath}/apple-icon.png`,
