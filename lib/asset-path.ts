@@ -1,4 +1,14 @@
-const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? ''
+const repoName = 'FairySave'
+const repoBasePath = `/${repoName}`
+
+const basePath =
+  typeof window !== 'undefined'
+    ? window.location.pathname.startsWith(repoBasePath)
+      ? repoBasePath
+      : ''
+    : process.env.GITHUB_PAGES === 'true'
+      ? repoBasePath
+      : ''
 
 export function assetPath(path: string) {
   if (!path) {
