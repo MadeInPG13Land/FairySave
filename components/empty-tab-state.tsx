@@ -4,6 +4,7 @@ import { type DragEvent, useMemo, useState } from 'react';
 import { FileUp, FolderSearch } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useEditorStore } from '@/lib/store';
+import { assetPath } from '@/lib/asset-path';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import {
   Dialog,
@@ -79,7 +80,7 @@ export function EmptyTabState() {
           <div className="flex items-center gap-4">
             <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-xl border border-white/8 bg-white/[0.04]">
               <img
-                src="/fairysavetool-logo.png"
+                src={assetPath('/fairysavetool-logo.png')}
                 alt="FairySaveTool"
                 className="h-full w-full object-cover"
               />

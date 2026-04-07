@@ -15,6 +15,7 @@ import {
 import { EditorCard } from './editor-card';
 import { FormField } from './form-field';
 import { getActiveTab } from '@/lib/editor-tab';
+import { assetPath } from '@/lib/asset-path';
 import { useEditorStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -1080,7 +1081,11 @@ export function WorldEditor() {
                         <div className="flex items-center gap-2">
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-md border border-white/8 bg-black/20">
                             {iconSrc ? (
-                              <img src={iconSrc} alt={displayName} className="h-full w-full object-contain" />
+                              <img
+                                src={assetPath(iconSrc)}
+                                alt={displayName}
+                                className="h-full w-full object-contain"
+                              />
                             ) : (
                               <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                                 ?
