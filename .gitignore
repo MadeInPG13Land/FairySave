@@ -12,3 +12,6 @@ vite.stdout.log
 *.tsbuildinfo
 
 zip_frontend/
+
+# Registry exports of the game settings: they hold Unity install and user IDs.
+*.reg

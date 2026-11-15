@@ -1,148 +1,87 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { AlertTriangle, Copy, Check, Code } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { AlertTriangle, Check, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { useEditorStore } from '@/lib/store';
-import { getActiveTab } from '@/lib/editor-tab';
+import { PageHeader, Pill } from '@/components/kit';
+import { isObject, type JsonObject } from '@/lib/save';
+import { useEditor, type SaveDoc } from '@/lib/store';
 
-export function JsonEditor() {
-  const { tabs, activeTabId, setRawJson, setLastAction } = useEditorStore();
-  const activeTab = getActiveTab(tabs, activeTabId);
-  const [localJson, setLocalJson] = useState('');
+export function JsonEditor({ doc }: { doc: SaveDoc }) {
+  const replaceData = useEditor((state) => state.replaceData);
+  const [text, setText] = useState(() => JSON.stringify(doc.data, null, 2));
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const lastApplied = useRef<JsonObject>(doc.data);
 
+  // Pick up changes made elsewhere (revert, reload, switching files).
   useEffect(() => {
-    if (!activeTab) {
-      setLocalJson('');
-      return;
-    }
-
-    if (activeTab.worldData) {
-      setLocalJson(JSON.stringify(activeTab.worldData, null, 2));
-    } else if (activeTab.playerData) {
-      setLocalJson(JSON.stringify(activeTab.playerData, null, 2));
-    } else if (activeTab.rawJson) {
-      setLocalJson(activeTab.rawJson);
-    } else {
-      setLocalJson('');
-    }
-  }, [activeTab]);
-
-  const handleJsonChange = (value: string) => {
-    setLocalJson(value);
-    setError(null);
-    
-    try {
-      JSON.parse(value);
-      setRawJson(value);
-    } catch (e) {
-      if (value.trim()) {
-        setError('Invalid JSON syntax');
-      }
-    }
-  };
-
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(localJson);
-    setCopied(true);
-    setLastAction('Copied JSON to clipboard');
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleFormat = () => {
-    try {
-      const parsed = JSON.parse(localJson);
-      setLocalJson(JSON.stringify(parsed, null, 2));
+    if (doc.data !== lastApplied.current) {
+      lastApplied.current = doc.data;
+      setText(JSON.stringify(doc.data, null, 2));
       setError(null);
-      setLastAction('Formatted JSON');
-    } catch {
-      setError('Cannot format invalid JSON');
     }
-  };
+  }, [doc.data]);
 
-  const isEmpty = !localJson.trim();
+  function onChange(next: string) {
+    setText(next);
+    try {
+      const parsed = JSON.parse(next);
+      if (!isObject(parsed)) throw new Error('The save must be a JSON object.');
+      setError(null);
+      lastApplied.current = parsed;
+      replaceData(parsed);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Invalid JSON');
+    }
+  }
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Code className="h-5 w-5 text-primary" />
-          <h2 className="font-semibold text-foreground">Raw JSON Editor</h2>
-          <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">Advanced</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleFormat}
-            disabled={isEmpty || !!error}
-          >
-            Format
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleCopy}
-            disabled={isEmpty}
-          >
-            {copied ? (
-              <>
-                <Check className="h-3.5 w-3.5 mr-1.5" />
-                Copied
-              </>
+    <div className="flex h-full min-h-[480px] flex-col">
+      <PageHeader
+        title="JSON"
+        description="The decrypted save. Edits apply as soon as the JSON is valid."
+        actions={
+          <>
+            {error ? (
+              <Pill tone="negative">
+                <AlertTriangle className="size-3" /> Invalid
+              </Pill>
             ) : (
-              <>
-                <Copy className="h-3.5 w-3.5 mr-1.5" />
-                Copy
-              </>
+              <Pill tone="positive">
+                <Check className="size-3" /> Valid
+              </Pill>
             )}
-          </Button>
-        </div>
-      </div>
-
-      {/* Error Banner */}
-      {error && (
-        <div className="flex items-center gap-2 mb-4 p-3 rounded-md bg-destructive/10 border border-destructive/20 text-destructive text-sm">
-          <AlertTriangle className="h-4 w-4" />
-          {error}
-        </div>
-      )}
-
-      {/* Editor */}
-      <div className="flex-1 relative">
-        {isEmpty ? (
-          <div className="h-full flex items-center justify-center border border-dashed border-border rounded-lg bg-muted/20">
-            <div className="text-center">
-              <Code className="h-12 w-12 mx-auto mb-3 text-muted-foreground/30" />
-              <p className="text-muted-foreground">No data loaded</p>
-              <p className="text-sm text-muted-foreground/60 mt-1">
-                Upload a save file or paste JSON here
-              </p>
-            </div>
-          </div>
-        ) : (
-          <Textarea
-            value={localJson}
-            onChange={(e) => handleJsonChange(e.target.value)}
-            className="h-full w-full font-mono text-sm bg-input border-border resize-none focus-visible:ring-primary"
-            placeholder="Paste or edit JSON here..."
-          />
-        )}
-      </div>
-
-      {/* Footer Info */}
-      <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
-        <span>
-          {localJson.split('\n').length} lines • {localJson.length.toLocaleString()} characters
-        </span>
-        <span>
-          Edit JSON directly or use the guided editor tabs
-        </span>
-      </div>
+            <Button
+              variant="outline"
+              disabled={Boolean(error)}
+              onClick={() => setText(JSON.stringify(JSON.parse(text), null, 2))}
+            >
+              Format
+            </Button>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                await navigator.clipboard.writeText(text);
+                setCopied(true);
+                window.setTimeout(() => setCopied(false), 1500);
+              }}
+            >
+              {copied ? <Check /> : <Copy />} Copy
+            </Button>
+          </>
+        }
+      />
+      {error ? <p className="mb-2 font-mono text-[11px] text-destructive">{error}</p> : null}
+      <textarea
+        value={text}
+        onChange={(event) => onChange(event.target.value)}
+        spellCheck={false}
+        className="min-h-0 flex-1 resize-none rounded-lg border bg-card p-4 font-mono text-[11px] leading-relaxed text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/25"
+      />
+      <p className="mt-2 text-[11px] text-subtle-foreground tabular-nums">
+        {text.split('\n').length.toLocaleString()} lines · {text.length.toLocaleString()} characters
+      </p>
     </div>
   );
 }

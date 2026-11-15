@@ -2,803 +2,378 @@
 
 import { create } from 'zustand';
 import { toast } from 'sonner';
-import { decodeBase64, decryptSave, encodeBase64, encryptSave, formatSaveJson, parseSaveJson, serializeSaveJson } from '@/src/crypto';
-import { detectSection } from '@/src/editor';
-import type { JsonObject } from '@/src/types';
+import { decodeBase64, decryptSave, encodeBase64, encryptSave, parseSaveJson, serializeSaveJson } from './crypto';
+import { countChanges, detectSaveKind, type JsonObject, type JsonValue, type SaveKind } from './save';
 import {
-  EditorSection,
-  FileAccessStatus,
-  FileStatus,
-  TabKind,
-  type EditorTab,
-  type PlayerData,
-  type WorldData,
-} from './types';
+  downloadText,
+  queryAccess,
+  requestWriteAccess,
+  writeText,
+  type FileAccess,
+  type PickedFile,
+} from './file-access';
 import { deleteFileHandle, getFileHandle, saveFileHandle } from './file-handle-store';
+import { addBackup, getBackup } from './backup-store';
+import { buildRegFile, decodeRegBytes, looksLikeRegExport, parseRegExport, regNameFor, type RegType } from './registry';
+import { findSetting, isHiddenSetting } from './settings';
 
-const STORAGE_KEY = 'fairysavetool-tabs-state';
+export type EditorView = 'guided' | 'json';
 
-type OpenFilePickerWindow = Window &
-  typeof globalThis & {
-    showOpenFilePicker?: (options?: {
-      multiple?: boolean;
-      excludeAcceptAllOption?: boolean;
-      types?: Array<{
-        description?: string;
-        accept: Record<string, string[]>;
-      }>;
-    }) => Promise<FileSystemFileHandle[]>;
+export interface SaveDoc {
+  id: string;
+  fileName: string;
+  kind: SaveKind;
+  data: JsonObject;
+  /** Snapshot as loaded or last saved; used for "N changes" and revert. */
+  original: JsonObject;
+  handle: FileSystemFileHandle | null;
+  access: FileAccess;
+  view: EditorView;
+  section: string | null;
+  openedAt: number;
+  /**
+   * How it was last saved: written back to its file, or only downloaded as a copy
+   * (which may never reach the game's folder, so it isn't the same as saved).
+   */
+  savedAs?: SaveResult;
+  /** Settings docs only: each value's registry name and how it's stored. */
+  registry?: Record<string, { regName: string; type: RegType }>;
+}
+
+export type SaveResult = 'file' | 'download';
+
+interface EditorState {
+  docs: SaveDoc[];
+  activeId: string | null;
+  hydrated: boolean;
+  hydrate: () => Promise<void>;
+  openFiles: (files: PickedFile[]) => Promise<void>;
+  activate: (id: string) => void;
+  close: (id?: string) => void;
+  setField: (key: string, value: JsonValue | undefined) => void;
+  replaceData: (data: JsonObject) => void;
+  setView: (view: EditorView) => void;
+  setSection: (section: string) => void;
+  revert: () => void;
+  /** Saves the active save; resolves to how it was saved, or null if it couldn't be. */
+  save: (options?: { download?: boolean }) => Promise<SaveResult | null>;
+  reload: () => Promise<void>;
+  /** Loads a backup into the active save as unsaved changes. Never writes to disk. */
+  restoreBackup: (id: string) => Promise<boolean>;
+}
+
+const STORAGE_KEY = 'fairysave:v2';
+
+async function decodeSaveText(text: string): Promise<JsonObject> {
+  const trimmed = text.trim();
+  // Accept plain JSON too, handy for pasting a decrypted save back in.
+  if (trimmed.startsWith('{')) return parseSaveJson(trimmed);
+  return parseSaveJson(await decryptSave(decodeBase64(trimmed)));
+}
+
+/** A dropped or picked file: a save (encrypted or plain JSON), or a settings .reg export. */
+async function readFile(file: File): Promise<{ kind: SaveKind; data: JsonObject; registry?: SaveDoc['registry'] }> {
+  const text = decodeRegBytes(await file.arrayBuffer());
+  if (!looksLikeRegExport(text)) {
+    const data = await decodeSaveText(text);
+    return { kind: detectSaveKind(data), data };
+  }
+  const entries = parseRegExport(text);
+  const data: JsonObject = {};
+  const registry: NonNullable<SaveDoc['registry']> = {};
+  for (const [name, entry] of Object.entries(entries)) {
+    // Unity's anonymous IDs and session counters: not settings, so never kept, shown or stored.
+    if (isHiddenSetting(name)) continue;
+    data[name] = entry.value;
+    registry[name] = { regName: entry.regName, type: entry.type };
+  }
+  return { kind: 'settings', data, registry };
+}
+
+/**
+ * The .reg to double-click: just the changed values, or (with nothing changed)
+ * every value, so it's a full copy. Unity's own entries are never included.
+ */
+export function settingsRegFile(doc: Pick<SaveDoc, 'data' | 'original' | 'registry'>): Uint8Array<ArrayBuffer> {
+  const keys = [...new Set([...Object.keys(doc.original), ...Object.keys(doc.data)])].filter((key) => !isHiddenSetting(key));
+  const changed = keys.filter((key) => JSON.stringify(doc.data[key]) !== JSON.stringify(doc.original[key]));
+  // Only values the registry can hold: a number or text (or deleted). Anything else typed into the JSON view is skipped.
+  const writable = (key: string) => {
+    const value = doc.data[key];
+    return value === undefined || typeof value === 'string' || (typeof value === 'number' && Number.isFinite(value));
   };
-
-type PermissionedFileHandle = FileSystemFileHandle & {
-  queryPermission?: (descriptor?: { mode?: 'read' | 'readwrite' }) => Promise<PermissionState>;
-  requestPermission?: (descriptor?: { mode?: 'read' | 'readwrite' }) => Promise<PermissionState>;
-};
-
-function mapPermissionState(permission: PermissionState): FileAccessStatus {
-  switch (permission) {
-    case 'granted':
-      return FileAccessStatus.Granted;
-    case 'prompt':
-      return FileAccessStatus.Prompt;
-    case 'denied':
-      return FileAccessStatus.Denied;
-  }
-}
-
-function createEmptyTab(): EditorTab {
-  return {
-    id: crypto.randomUUID(),
-    title: 'New Tab',
-    kind: TabKind.Empty,
-    fileName: null,
-    fileHandle: null,
-    fileAccessStatus: FileAccessStatus.None,
-    fileStatus: FileStatus.Empty,
-    lastAction: null,
-    playerData: null,
-    worldData: null,
-    rawJson: '',
-    jsonMode: false,
-    isModified: false,
-  };
-}
-
-function deriveTabKind(playerData: PlayerData | null, worldData: WorldData | null, rawJson: string): TabKind {
-  if (playerData) {
-    return TabKind.Player;
-  }
-
-  if (worldData) {
-    return TabKind.World;
-  }
-
-  if (rawJson.trim()) {
-    return TabKind.Json;
-  }
-
-  return TabKind.Empty;
-}
-
-function deriveTabTitle(tab: Pick<EditorTab, 'kind' | 'fileName' | 'playerData' | 'worldData'>): string {
-  if (tab.fileName) {
-    return tab.fileName;
-  }
-
-  if (tab.kind === TabKind.Player) {
-    return tab.playerData?.characterName || 'Player Save';
-  }
-
-  if (tab.kind === TabKind.World) {
-    return tab.worldData?.worldData?.uiName || 'World Save';
-  }
-
-  if (tab.kind === TabKind.Json) {
-    return 'JSON';
-  }
-
-  return 'New Tab';
-}
-
-function syncTab(tab: EditorTab): EditorTab {
-  const kind = deriveTabKind(tab.playerData, tab.worldData, tab.rawJson);
-  return {
-    ...tab,
-    kind,
-    title: deriveTabTitle({ ...tab, kind }),
-  };
-}
-
-function updateTab(tabs: EditorTab[], id: string, updater: (tab: EditorTab) => EditorTab): EditorTab[] {
-  return tabs.map((tab) => (tab.id === id ? syncTab(updater(tab)) : tab));
-}
-
-function getSaveFileName(tab: EditorTab) {
-  return tab.fileName ?? `${tab.title}.fs`;
-}
-
-function getRestoredFileAction(previousAction: string | null, fileAccessStatus: FileAccessStatus) {
-  if (previousAction) {
-    return previousAction;
-  }
-
-  return fileAccessStatus === FileAccessStatus.Granted
-    ? 'Restored direct file access'
-    : 'File access needs to be reconnected';
-}
-
-async function getFileAccessStatus(handle: FileSystemFileHandle | null | undefined): Promise<FileAccessStatus> {
-  if (!handle) {
-    return FileAccessStatus.None;
-  }
-
-  const permissionedHandle = handle as PermissionedFileHandle;
-  if (typeof permissionedHandle.queryPermission !== 'function') {
-    return FileAccessStatus.Unsupported;
-  }
-
-  try {
-    const permission = await permissionedHandle.queryPermission({ mode: 'readwrite' });
-    return mapPermissionState(permission);
-  } catch {
-    return FileAccessStatus.Prompt;
-  }
-
-  return FileAccessStatus.Prompt;
-}
-
-async function requestFileWriteAccess(handle: FileSystemFileHandle | null | undefined): Promise<FileAccessStatus> {
-  if (!handle) {
-    return FileAccessStatus.None;
-  }
-
-  const currentStatus = await getFileAccessStatus(handle);
-  if (
-    currentStatus === FileAccessStatus.Granted ||
-    currentStatus === FileAccessStatus.Unsupported ||
-    currentStatus === FileAccessStatus.None
-  ) {
-    return currentStatus;
-  }
-
-  const permissionedHandle = handle as PermissionedFileHandle;
-  if (typeof permissionedHandle.requestPermission !== 'function') {
-    return FileAccessStatus.Unsupported;
-  }
-
-  try {
-    const permission = await permissionedHandle.requestPermission({ mode: 'readwrite' });
-    return mapPermissionState(permission);
-  } catch {
-    return FileAccessStatus.Denied;
-  }
-
-  return FileAccessStatus.Denied;
-}
-
-async function ensureDirectSaveAccess(handle: FileSystemFileHandle | null | undefined): Promise<FileAccessStatus> {
-  if (!handle) {
-    return FileAccessStatus.None;
-  }
-
-  const requestedStatus = await requestFileWriteAccess(handle);
-  if (
-    requestedStatus === FileAccessStatus.Granted ||
-    requestedStatus === FileAccessStatus.Unsupported ||
-    requestedStatus === FileAccessStatus.None
-  ) {
-    return requestedStatus;
-  }
-
-  try {
-    const writable = await handle.createWritable();
-    await writable.close();
-    return await getFileAccessStatus(handle);
-  } catch (error) {
-    if (error instanceof DOMException && error.name === 'AbortError') {
-      return FileAccessStatus.Denied;
-    }
-
-    return FileAccessStatus.Denied;
-  }
-}
-
-async function openSaveFileWithPicker() {
-  const pickerWindow = window as OpenFilePickerWindow;
-  if (!pickerWindow.showOpenFilePicker) {
-    return null;
-  }
-
-  const [handle] = await pickerWindow.showOpenFilePicker({
-    multiple: false,
-    excludeAcceptAllOption: false,
-    types: [
-      {
-        description: 'Forsaken Frontiers save',
-        accept: {
-          'text/plain': ['.fs', '.txt'],
-          'application/octet-stream': ['.fs'],
-        },
-      },
-    ],
+  const entries = (changed.length ? changed : keys.filter((key) => key in doc.data)).filter(writable).map((key) => {
+    const known = doc.registry?.[key];
+    const value = doc.data[key];
+    const type: RegType =
+      known?.type ?? findSetting(key)?.type ?? (typeof value === 'string' ? 'string' : Number.isInteger(value) ? 'dword' : 'double');
+    return { regName: known?.regName ?? regNameFor(key), type, value: value === undefined ? null : (value as number | string) };
   });
-
-  if (!handle) {
-    return null;
-  }
-
-  const file = await handle.getFile();
-  return { file, handle };
+  return buildRegFile(entries) as Uint8Array<ArrayBuffer>;
 }
 
-function openSaveFileWithInput(): Promise<{ file: File; handle: null } | null> {
-  return new Promise((resolve) => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.fs,.txt';
-    input.onchange = () => {
-      const file = input.files?.item(0);
-      resolve(file ? { file, handle: null } : null);
-    };
-    input.click();
-  });
+/** "ff-settings.reg" -> "ff-settings.reg"; anything else gets a .reg ending. */
+export const regFileName = (fileName: string) => `${fileName.replace(/\.[^.]+$/, '')}.reg`;
+
+async function encodeSave(data: JsonObject): Promise<string> {
+  return encodeBase64(await encryptSave(serializeSaveJson(data)));
 }
 
-async function pickSaveFile() {
-  try {
-    const picked = await openSaveFileWithPicker();
-    if (picked) {
-      return picked;
+const errorMessage = (error: unknown, fallback: string) => (error instanceof Error ? error.message : fallback);
+
+function mutateActive(state: EditorState, update: (doc: SaveDoc) => SaveDoc): Partial<EditorState> {
+  return { docs: state.docs.map((doc) => (doc.id === state.activeId ? update(doc) : doc)) };
+}
+
+export const useEditor = create<EditorState>((set, get) => ({
+  docs: [],
+  activeId: null,
+  hydrated: false,
+
+  hydrate: async () => {
+    if (get().hydrated) return;
+    let docs: SaveDoc[] = [];
+    let activeId: string | null = null;
+    try {
+      const stored = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? 'null') as {
+        docs: Omit<SaveDoc, 'handle' | 'access'>[];
+        activeId: string | null;
+      } | null;
+      if (stored?.docs?.length) {
+        docs = stored.docs.map((doc) => ({ ...doc, handle: null, access: 'none' as FileAccess }));
+        activeId = stored.activeId ?? docs[0].id;
+      }
+    } catch {
+      /* corrupt storage; start fresh */
     }
-  } catch (error) {
-    if (!(error instanceof DOMException && error.name === 'AbortError')) {
-      throw error;
-    }
-    return null;
-  }
+    set({ docs, activeId, hydrated: true });
 
-  return openSaveFileWithInput();
-}
-
-async function applyLoadedFile(
-  file: File,
-  handle: FileSystemFileHandle | null,
-  options: { requestWriteAccess?: boolean } | undefined,
-  setState: (updater: (state: EditorStore) => Partial<EditorStore>) => void,
-  getState: () => EditorStore,
-) {
-  let fileAccessStatus = await getFileAccessStatus(handle);
-  if (options?.requestWriteAccess && handle) {
-    fileAccessStatus = await ensureDirectSaveAccess(handle);
-  }
-
-  try {
-    const rawInput = await file.text();
-    const bytes = decodeBase64(rawInput);
-    const decryptedText = await decryptSave(bytes);
-    const parsed = parseSaveJson(decryptedText);
-    const section = detectSection(parsed);
-
-    setState((state) => ({
-      tabs: updateTab(state.tabs, state.activeTabId, (tab) => {
-        if (section === EditorSection.Player) {
-          return {
-            ...tab,
-            fileName: file.name,
-            fileHandle: handle,
-            fileAccessStatus,
-            fileStatus: FileStatus.Decrypted,
-            playerData: parsed as unknown as PlayerData,
-            worldData: null,
-            rawJson: formatSaveJson(parsed as JsonObject),
-            lastAction: handle ? 'Opened and decrypted player save' : 'Loaded and decrypted player save',
-            jsonMode: false,
-            isModified: false,
-          };
+    // Reattach file handles so "Save" can write in place again.
+    const restored = await Promise.all(
+      docs.map(async (doc) => {
+        try {
+          const handle = await getFileHandle(doc.id);
+          return handle ? { ...doc, handle, access: await queryAccess(handle) } : doc;
+        } catch {
+          return doc;
         }
+      }),
+    );
+    set((state) => ({
+      docs: state.docs.map((doc) => restored.find((entry) => entry.id === doc.id) ?? doc),
+    }));
+  },
 
-        if (section === EditorSection.World) {
-          return {
-            ...tab,
-            fileName: file.name,
-            fileHandle: handle,
-            fileAccessStatus,
-            fileStatus: FileStatus.Decrypted,
-            playerData: null,
-            worldData: parsed as unknown as WorldData,
-            rawJson: formatSaveJson(parsed as JsonObject),
-            lastAction: handle ? 'Opened and decrypted world save' : 'Loaded and decrypted world save',
-            jsonMode: false,
-            isModified: false,
-          };
-        }
+  openFiles: async (files) => {
+    let lastId: string | null = null;
+    for (const { file, handle } of files) {
+      try {
+        const { kind, data, registry } = await readFile(file);
 
-        return {
-          ...tab,
+        // Re-opening the same file replaces it instead of duplicating it.
+        const existing = await (async () => {
+          for (const doc of get().docs) {
+            if (handle && doc.handle && (await doc.handle.isSameEntry(handle))) return doc;
+          }
+          return null;
+        })();
+
+        const doc: SaveDoc = {
+          id: existing?.id ?? crypto.randomUUID(),
           fileName: file.name,
-          fileHandle: handle,
-          fileAccessStatus,
-          fileStatus: FileStatus.Decrypted,
-          playerData: null,
-          worldData: null,
-          rawJson: formatSaveJson(parsed as JsonObject),
-          lastAction: handle ? 'Opened JSON save data' : 'Loaded JSON save data',
-          jsonMode: true,
-          isModified: false,
+          kind,
+          data,
+          original: data,
+          handle,
+          access: await queryAccess(handle),
+          registry,
+          view: kind === 'json' ? 'json' : 'guided',
+          section: null,
+          openedAt: Date.now(),
         };
-      }),
-    }));
-
-    if (handle) {
-      await saveFileHandle(getState().activeTabId, handle);
-    }
-  } catch (error) {
-    setState((state) => ({
-      tabs: updateTab(state.tabs, state.activeTabId, (tab) => ({
-        ...tab,
-        fileName: file.name,
-        fileHandle: handle,
-        fileAccessStatus,
-        fileStatus: FileStatus.Error,
-        lastAction: error instanceof Error ? error.message : 'Failed to load save file',
-      })),
-    }));
-  }
-}
-
-interface EditorStore {
-  tabs: EditorTab[];
-  activeTabId: string;
-  newTab: () => void;
-  closeTab: (id?: string) => void;
-  activateTab: (id: string) => void;
-  setLastAction: (action: string | null) => void;
-  updatePlayerField: <K extends keyof PlayerData>(field: K, value: PlayerData[K]) => void;
-  updateWorldField: <K extends keyof WorldData>(field: K, value: WorldData[K]) => void;
-  setJsonMode: (enabled: boolean) => void;
-  setRawJson: (json: string) => void;
-  loadSampleData: (options?: { requestWriteAccess?: boolean }) => void;
-  loadLocalFile: (file: File) => void;
-  reconnectActiveFile: () => void;
-  refreshActiveFile: () => Promise<void>;
-  clearData: () => void;
-  downloadFile: () => Promise<void>;
-}
-
-const initialTab = createEmptyTab();
-
-export const useEditorStore = create<EditorStore>((set, get) => ({
-  tabs: [initialTab],
-  activeTabId: initialTab.id,
-
-  newTab: () =>
-    set((state) => {
-      const tab = createEmptyTab();
-      return {
-        tabs: [...state.tabs, tab],
-        activeTabId: tab.id,
-      };
-    }),
-
-  closeTab: (id) =>
-    set((state) => {
-      const targetId = id ?? state.activeTabId;
-      void deleteFileHandle(targetId);
-      const nextTabs = state.tabs.filter((tab) => tab.id !== targetId);
-
-      if (nextTabs.length === 0) {
-        const emptyTab = createEmptyTab();
-        return {
-          tabs: [emptyTab],
-          activeTabId: emptyTab.id,
-        };
+        if (handle) await saveFileHandle(doc.id, handle).catch(() => undefined);
+        set((state) => ({
+          docs: existing ? state.docs.map((entry) => (entry.id === doc.id ? doc : entry)) : [...state.docs, doc],
+        }));
+        lastId = doc.id;
+      } catch (error) {
+        toast.error(`Couldn't open ${file.name}`, {
+          description: errorMessage(error, 'The file is not a Forsaken Frontiers save or settings export.'),
+        });
       }
+    }
+    if (lastId) set({ activeId: lastId });
+  },
 
-      return {
-        tabs: nextTabs,
-        activeTabId: state.activeTabId === targetId ? nextTabs[Math.max(0, nextTabs.length - 1)].id : state.activeTabId,
-      };
+  activate: (id) => set({ activeId: id }),
+
+  close: (id) =>
+    set((state) => {
+      const target = id ?? state.activeId;
+      if (!target) return {};
+      void deleteFileHandle(target).catch(() => undefined);
+      const index = state.docs.findIndex((doc) => doc.id === target);
+      const docs = state.docs.filter((doc) => doc.id !== target);
+      const activeId =
+        state.activeId === target ? (docs[Math.min(index, docs.length - 1)]?.id ?? null) : state.activeId;
+      return { docs, activeId };
     }),
 
-  activateTab: (id) => set({ activeTabId: id }),
-
-  setLastAction: (action) =>
-    set((state) => ({
-      tabs: updateTab(state.tabs, state.activeTabId, (tab) => ({ ...tab, lastAction: action })),
-    })),
-
-  updatePlayerField: (field, value) =>
-    set((state) => ({
-      tabs: updateTab(state.tabs, state.activeTabId, (tab) => {
-        const nextPlayer = tab.playerData ? { ...tab.playerData, [field]: value } : null;
-        return {
-          ...tab,
-          playerData: nextPlayer,
-          worldData: null,
-          rawJson: nextPlayer ? JSON.stringify(nextPlayer, null, 2) : tab.rawJson,
-          isModified: true,
-          fileStatus: FileStatus.Modified,
-          lastAction: `Updated ${String(field)}`,
-        };
+  setField: (key, value) =>
+    set((state) =>
+      mutateActive(state, (doc) => {
+        const data = { ...doc.data };
+        if (value === undefined) delete data[key];
+        else data[key] = value;
+        return { ...doc, data };
       }),
-    })),
+    ),
 
-  updateWorldField: (field, value) =>
-    set((state) => ({
-      tabs: updateTab(state.tabs, state.activeTabId, (tab) => {
-        const nextWorld = tab.worldData ? { ...tab.worldData, [field]: value } : null;
-        return {
-          ...tab,
-          worldData: nextWorld,
-          playerData: null,
-          rawJson: nextWorld ? JSON.stringify(nextWorld, null, 2) : tab.rawJson,
-          isModified: true,
-          fileStatus: FileStatus.Modified,
-          lastAction: `Updated ${String(field)}`,
-        };
-      }),
-    })),
+  replaceData: (data) =>
+    set((state) => mutateActive(state, (doc) => ({ ...doc, data, kind: doc.kind === 'settings' ? 'settings' : detectSaveKind(data) }))),
 
-  setJsonMode: (enabled) =>
-    set((state) => ({
-      tabs: updateTab(state.tabs, state.activeTabId, (tab) => ({ ...tab, jsonMode: enabled })),
-    })),
+  setView: (view) => set((state) => mutateActive(state, (doc) => ({ ...doc, view }))),
 
-  setRawJson: (json) =>
-    set((state) => {
-      return {
-        tabs: updateTab(state.tabs, state.activeTabId, (tab) => {
-          const nextTab: EditorTab = {
-            ...tab,
-            rawJson: json,
-          };
+  setSection: (section) => set((state) => mutateActive(state, (doc) => ({ ...doc, section, view: 'guided' }))),
 
-          if (!json.trim()) {
-            return {
-              ...nextTab,
-              playerData: null,
-              worldData: null,
-              fileStatus: FileStatus.Empty,
-              isModified: false,
-              lastAction: 'Cleared JSON content',
-            };
-          }
+  revert: () => set((state) => mutateActive(state, (doc) => ({ ...doc, data: doc.original }))),
 
+  save: async (options) => {
+    const doc = get().docs.find((entry) => entry.id === get().activeId);
+    if (!doc) return null;
+
+    const markSaved = (access: FileAccess, savedAs: SaveResult) =>
+      set((state) => ({
+        docs: state.docs.map((entry) => (entry.id === doc.id ? { ...entry, original: entry.data, access, savedAs } : entry)),
+      }));
+
+    // A browser can't write to the registry: settings always come out as a .reg to double-click.
+    if (doc.kind === 'settings') {
+      const name = regFileName(doc.fileName);
+      downloadText(name, settingsRegFile(doc));
+      markSaved(doc.access, 'download');
+      toast.success(`Downloaded ${name}`, { description: 'Close the game, then double-click it to apply.' });
+      return 'download';
+    }
+
+    let encoded: string;
+    try {
+      encoded = await encodeSave(doc.data);
+    } catch (error) {
+      toast.error('Could not encrypt save', { description: errorMessage(error, 'Unknown error') });
+      return null;
+    }
+
+    if (doc.handle && !options?.download) {
+      const access = await requestWriteAccess(doc.handle);
+      if (access === 'granted' || access === 'unsupported') {
+        try {
+          // Keep what's on disk now, so a bad edit can be undone with `restore`.
           try {
-            const parsed = parseSaveJson(json);
-            const section = detectSection(parsed);
-
-            if (section === EditorSection.Player) {
-              return {
-                ...nextTab,
-                playerData: parsed as unknown as PlayerData,
-                worldData: null,
-                fileStatus: FileStatus.Modified,
-                isModified: true,
-                lastAction: 'Updated player save from JSON',
-              };
-            }
-
-            if (section === EditorSection.World) {
-              return {
-                ...nextTab,
-                worldData: parsed as unknown as WorldData,
-                playerData: null,
-                fileStatus: FileStatus.Modified,
-                isModified: true,
-                lastAction: 'Updated world save from JSON',
-              };
-            }
-
-            return {
-              ...nextTab,
-              playerData: null,
-              worldData: null,
-              fileStatus: FileStatus.Modified,
-              isModified: true,
-              lastAction: 'Updated JSON save',
-            };
+            await addBackup(doc.fileName, await (await doc.handle.getFile()).text());
           } catch {
-            return {
-              ...nextTab,
-              fileStatus: FileStatus.Error,
-              lastAction: 'JSON contains syntax errors',
-            };
+            /* a failed backup must not block saving */
           }
-        }),
-      };
-    }),
-
-  loadSampleData: (options) => {
-    void (async () => {
-      const picked = await pickSaveFile();
-      if (!picked) {
-        return;
+          await writeText(doc.handle, encoded);
+          markSaved(access, 'file');
+          toast.success(`Saved ${doc.fileName}`, { description: 'Written back to the original file.' });
+          return 'file';
+        } catch (error) {
+          toast.error('Could not write to the file', {
+            description: `${errorMessage(error, 'Write failed')}. Downloading a copy instead.`,
+          });
+        }
+      } else {
+        toast.message('Write permission denied', { description: 'Downloading a copy instead.' });
       }
-
-      await applyLoadedFile(picked.file, picked.handle, options, set, get);
-    })();
-  },
-
-  loadLocalFile: (file) => {
-    void applyLoadedFile(file, null, undefined, set, get);
-  },
-
-  reconnectActiveFile: () => {
-    get().loadSampleData({ requestWriteAccess: true });
-  },
-
-  refreshActiveFile: async () => {
-    const state = get();
-    const activeTab = state.tabs.find((tab) => tab.id === state.activeTabId);
-
-    if (!activeTab?.fileHandle) {
-      set((current) => ({
-        tabs: updateTab(current.tabs, current.activeTabId, (tab) => ({
-          ...tab,
-          fileStatus: FileStatus.Error,
-          lastAction: 'No linked file available to refresh',
-        })),
-      }));
-      toast.error('Refresh unavailable', {
-        description: 'This tab is not currently linked to a local file.',
-      });
-      return;
     }
 
+    downloadText(doc.fileName, encoded);
+    markSaved(doc.access, 'download');
+    toast.success(`Downloaded ${doc.fileName}`, {
+      description: 'Replace the file in your save folder with this one.',
+    });
+    return 'download';
+  },
+
+  reload: async () => {
+    const doc = get().docs.find((entry) => entry.id === get().activeId);
+    if (!doc?.handle) return;
     try {
-      const file = await activeTab.fileHandle.getFile();
-      const rawInput = await file.text();
-      const bytes = decodeBase64(rawInput);
-      const decryptedText = await decryptSave(bytes);
-      const parsed = parseSaveJson(decryptedText);
-      const section = detectSection(parsed);
-      const fileAccessStatus = await getFileAccessStatus(activeTab.fileHandle);
-
-      set((current) => ({
-        tabs: updateTab(current.tabs, current.activeTabId, (tab) => {
-          if (section === EditorSection.Player) {
-            return {
-              ...tab,
-              fileName: file.name,
-              fileHandle: activeTab.fileHandle,
-              fileAccessStatus,
-              fileStatus: FileStatus.Decrypted,
-              playerData: parsed as unknown as PlayerData,
-              worldData: null,
-              rawJson: formatSaveJson(parsed as JsonObject),
-              lastAction: `Refreshed from ${file.name}`,
-              jsonMode: false,
-              isModified: false,
-            };
-          }
-
-          if (section === EditorSection.World) {
-            return {
-              ...tab,
-              fileName: file.name,
-              fileHandle: activeTab.fileHandle,
-              fileAccessStatus,
-              fileStatus: FileStatus.Decrypted,
-              playerData: null,
-              worldData: parsed as unknown as WorldData,
-              rawJson: formatSaveJson(parsed as JsonObject),
-              lastAction: `Refreshed from ${file.name}`,
-              jsonMode: false,
-              isModified: false,
-            };
-          }
-
-          return {
-            ...tab,
-            fileName: file.name,
-            fileHandle: activeTab.fileHandle,
-            fileAccessStatus,
-            fileStatus: FileStatus.Decrypted,
-            playerData: null,
-            worldData: null,
-            rawJson: formatSaveJson(parsed as JsonObject),
-            lastAction: `Refreshed from ${file.name}`,
-            jsonMode: true,
-            isModified: false,
-          };
-        }),
+      const { kind, data, registry } = await readFile(await doc.handle.getFile());
+      set((state) => ({
+        docs: state.docs.map((entry) => (entry.id === doc.id ? { ...entry, data, original: data, kind, registry } : entry)),
       }));
-
-      toast.success('Reloaded from disk', {
-        description: `${file.name} was re-read from your local file.`,
-      });
+      toast.success('Reloaded from disk');
     } catch (error) {
-      set((current) => ({
-        tabs: updateTab(current.tabs, current.activeTabId, (tab) => ({
-          ...tab,
-          fileStatus: FileStatus.Error,
-          lastAction: error instanceof Error ? error.message : 'Failed to refresh file',
-        })),
-      }));
-      toast.error('Refresh failed', {
-        description: error instanceof Error ? error.message : 'Failed to refresh file',
-      });
+      toast.error('Reload failed', { description: errorMessage(error, 'Could not read the file') });
     }
   },
 
-  clearData: () =>
-    set((state) => {
-      void deleteFileHandle(state.activeTabId);
-      return {
-        tabs: updateTab(state.tabs, state.activeTabId, () => ({
-          ...createEmptyTab(),
-          id: state.activeTabId,
-          lastAction: 'Closed file',
-        })),
-      };
-    }),
-
-  downloadFile: async () => {
-    const state = get();
-    const activeTab = state.tabs.find((tab) => tab.id === state.activeTabId);
-
-    if (!activeTab) {
-      return;
+  restoreBackup: async (id) => {
+    const backup = await getBackup(id);
+    if (!backup) {
+      toast.error('Backup not found');
+      return false;
     }
-
-    const payload = activeTab.playerData ?? activeTab.worldData;
-    if (!payload) {
-      set({
-        tabs: updateTab(state.tabs, state.activeTabId, (tab) => ({
-          ...tab,
-          fileStatus: FileStatus.Error,
-          lastAction: 'No save data available to export',
-        })),
-      });
-      return;
-    }
-
     try {
-      const minified = serializeSaveJson(payload as unknown as JsonObject);
-      const encryptedBytes = await encryptSave(minified);
-      const base64 = encodeBase64(encryptedBytes);
-      const fileName = getSaveFileName(activeTab);
-
-      if (activeTab.fileHandle) {
-        const accessStatus = await requestFileWriteAccess(activeTab.fileHandle);
-
-        if (accessStatus === FileAccessStatus.Granted || accessStatus === FileAccessStatus.Unsupported) {
-          const writable = await activeTab.fileHandle.createWritable();
-          await writable.write(base64);
-          await writable.close();
-
-        set((current) => ({
-          tabs: updateTab(current.tabs, current.activeTabId, (tab) => ({
-            ...tab,
-            fileAccessStatus: accessStatus,
-            lastAction: `Saved ${fileName}`,
-            isModified: false,
-            fileStatus: FileStatus.Ready,
-          })),
-        }));
-        toast.success('Saved to original file', {
-          description: `${fileName} was written back in place.`,
-        });
-        return;
-      }
-
-      set((current) => ({
-          tabs: updateTab(current.tabs, current.activeTabId, (tab) => ({
-            ...tab,
-            fileAccessStatus: accessStatus,
-            fileStatus: FileStatus.Error,
-            lastAction: 'Direct save permission was denied',
-          })),
-        }));
-        toast.error('Direct save permission denied', {
-          description: 'The browser did not allow writing back to the original file.',
-        });
-        return;
-      }
-
-      const blob = new Blob([base64], { type: 'text/plain;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      set((current) => ({
-        tabs: updateTab(current.tabs, current.activeTabId, (tab) => ({
-          ...tab,
-          fileAccessStatus: tab.fileAccessStatus,
-          lastAction: `Downloaded ${fileName}`,
-          isModified: false,
-          fileStatus: FileStatus.Ready,
-        })),
-      }));
-      toast.success('Exported save file', {
-        description: `${fileName} was downloaded to your browser's save location.`,
-      });
+      get().replaceData(await decodeSaveText(backup.text));
+      return true;
     } catch (error) {
-      set((current) => ({
-        tabs: updateTab(current.tabs, current.activeTabId, (tab) => ({
-          ...tab,
-          fileStatus: FileStatus.Error,
-          lastAction: error instanceof Error ? error.message : 'Failed to export save',
-        })),
-      }));
-      toast.error('Save failed', {
-        description: error instanceof Error ? error.message : 'Failed to export save',
-      });
+      toast.error('Could not read that backup', { description: errorMessage(error, 'Unknown error') });
+      return false;
     }
   },
 }));
 
+/* Persist open documents (without file handles, which live in IndexedDB). */
 if (typeof window !== 'undefined') {
-  const stored = window.localStorage.getItem(STORAGE_KEY);
-  if (stored) {
-    try {
-      const parsed = JSON.parse(stored) as { tabs?: EditorTab[]; activeTabId?: string };
-      if (parsed.tabs && parsed.tabs.length > 0 && parsed.activeTabId) {
-        useEditorStore.setState({
-          tabs: parsed.tabs.map((tab) =>
-            syncTab({
-              ...tab,
-              fileHandle: null,
-              fileAccessStatus: FileAccessStatus.None,
-            }),
-          ),
-          activeTabId: parsed.activeTabId,
-        });
-      }
-    } catch {
-      window.localStorage.removeItem(STORAGE_KEY);
-    }
-  }
-
-  useEditorStore.subscribe((state) => {
-    window.localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        tabs: state.tabs.map((tab) => ({
-          ...tab,
-          fileHandle: null,
-          fileAccessStatus: FileAccessStatus.None,
-        })),
-        activeTabId: state.activeTabId,
-      }),
-    );
-  });
-
-  void (async () => {
-    const current = useEditorStore.getState();
-    const restoredTabs = await Promise.all(
-      current.tabs.map(async (tab) => {
-        try {
-          const handle = await getFileHandle(tab.id);
-          if (!handle) {
-            return tab;
-          }
-
-          const fileAccessStatus = await getFileAccessStatus(handle);
-          return syncTab({
-            ...tab,
-            fileHandle: handle,
-            fileAccessStatus,
-            lastAction: getRestoredFileAction(tab.lastAction, fileAccessStatus),
-          });
-        } catch {
-          return syncTab({
-            ...tab,
-            fileHandle: null,
-            fileAccessStatus: FileAccessStatus.None,
+  let timer: number | undefined;
+  // Warn once when storage stops working, again only after it has recovered.
+  let persistFailed = false;
+  useEditor.subscribe((state) => {
+    if (!state.hydrated) return;
+    window.clearTimeout(timer);
+    timer = window.setTimeout(() => {
+      try {
+        window.localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({
+            activeId: state.activeId,
+            docs: state.docs.map(({ handle: _handle, access: _access, ...doc }) => doc),
+          }),
+        );
+        persistFailed = false;
+      } catch {
+        // Storage full or blocked. Editing still works, but a reload would lose it.
+        if (!persistFailed) {
+          toast.warning("Couldn't keep your open saves for next time", {
+            description: 'Browser storage is full or blocked. Save or download before closing this tab.',
           });
         }
-      }),
-    );
+        persistFailed = true;
+      }
+    }, 250);
+  });
+}
 
-    useEditorStore.setState({
-      tabs: restoredTabs,
-    });
-  })();
+export function useActiveDoc() {
+  return useEditor((state) => state.docs.find((doc) => doc.id === state.activeId) ?? null);
+}
+
+export function docChanges(doc: SaveDoc | null) {
+  return doc ? countChanges(doc.original, doc.data) : 0;
+}
+
+/** Close a save, asking first if it has unsaved changes. Returns whether it closed. */
+export function closeWithConfirm(id?: string): boolean {
+  const state = useEditor.getState();
+  const doc = state.docs.find((d) => d.id === (id ?? state.activeId));
+  if (!doc) return false;
+  const changes = docChanges(doc);
+  if (changes > 0 && !window.confirm(`${doc.fileName} has ${changes} unsaved change${changes === 1 ? '' : 's'}. Close anyway?`)) {
+    return false;
+  }
+  state.close(doc.id);
+  return true;
 }

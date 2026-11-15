@@ -1,194 +1,148 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:is(.dark *, .crt *));
 
-/* FairySaveTool - Game Save Editor Theme */
-/* Dark, techy, moody aesthetic for modding tools */
-
+/*
+ * Neutral, low-contrast chrome with a single indigo accent.
+ * Light is the base; .dark (set by next-themes) overrides.
+ */
 :root {
-  /* Dark base - always dark mode for this tool */
-  --background: oklch(0.12 0.005 260);
-  --foreground: oklch(0.92 0 0);
-  --card: oklch(0.16 0.008 260);
-  --card-foreground: oklch(0.92 0 0);
-  --popover: oklch(0.14 0.006 260);
-  --popover-foreground: oklch(0.92 0 0);
-  
-  /* Primary - Emerald accent for actions and interactive states */
-  --primary: oklch(0.70 0.19 148);
-  --primary-foreground: oklch(0.12 0 0);
-  
-  /* Secondary - Subtle dark surfaces */
-  --secondary: oklch(0.22 0.01 260);
-  --secondary-foreground: oklch(0.85 0 0);
-  
-  /* Muted - For subtle text and backgrounds */
-  --muted: oklch(0.20 0.008 260);
-  --muted-foreground: oklch(0.60 0 0);
-  
-  /* Accent - Match primary green so outline/hover states stay in one family */
-  --accent: oklch(0.70 0.19 148);
-  --accent-foreground: oklch(0.12 0 0);
-  
-  /* Destructive - Red for warnings/errors */
-  --destructive: oklch(0.55 0.22 25);
-  --destructive-foreground: oklch(0.95 0 0);
-  
-  /* Warning - Amber for modified states */
-  --warning: oklch(0.75 0.18 75);
-  --warning-foreground: oklch(0.15 0 0);
-  
-  /* Success - Same green family, slightly deeper for status states */
-  --success: oklch(0.65 0.18 145);
-  --success-foreground: oklch(0.12 0 0);
-  
-  /* Borders and inputs */
-  --border: oklch(0.28 0.015 260);
-  --input: oklch(0.20 0.01 260);
-  --ring: oklch(0.70 0.19 148);
-  
-  /* Charts */
-  --chart-1: oklch(0.70 0.19 148);
-  --chart-2: oklch(0.65 0.18 145);
-  --chart-3: oklch(0.75 0.18 75);
-  --chart-4: oklch(0.55 0.22 25);
-  --chart-5: oklch(0.65 0.18 145);
-  
+  --background: oklch(0.993 0 0);
+  --foreground: oklch(0.21 0.004 285);
+  --sidebar: oklch(0.975 0.001 285);
+  --sidebar-foreground: oklch(0.36 0.005 285);
+  --card: oklch(1 0 0);
+  --card-foreground: var(--foreground);
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--foreground);
+  --surface: oklch(0.975 0.001 285);
+  --surface-hover: oklch(0.955 0.002 285);
+  --primary: oklch(0.55 0.19 277);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.96 0.002 285);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.965 0.002 285);
+  --muted-foreground: oklch(0.52 0.008 285);
+  --subtle-foreground: oklch(0.66 0.006 285);
+  --accent: oklch(0.955 0.003 285);
+  --accent-foreground: var(--foreground);
+  --destructive: oklch(0.58 0.2 25);
+  --destructive-foreground: oklch(0.99 0 0);
+  --positive: oklch(0.56 0.13 160);
+  --warning: oklch(0.66 0.14 70);
+  --border: oklch(0.915 0.003 285);
+  --border-strong: oklch(0.86 0.004 285);
+  --input: oklch(0.9 0.003 285);
+  --ring: oklch(0.55 0.19 277);
   --radius: 0.5rem;
-  
-  /* Sidebar - Slightly darker panel */
-  --sidebar: oklch(0.10 0.006 260);
-  --sidebar-foreground: oklch(0.88 0 0);
-  --sidebar-primary: oklch(0.70 0.19 148);
-  --sidebar-primary-foreground: oklch(0.12 0 0);
-  --sidebar-accent: oklch(0.18 0.01 260);
-  --sidebar-accent-foreground: oklch(0.88 0 0);
-  --sidebar-border: oklch(0.24 0.012 260);
-  --sidebar-ring: oklch(0.70 0.19 148);
+  --shadow-popover: 0 1px 2px rgb(0 0 0 / 0.04), 0 8px 24px -6px rgb(0 0 0 / 0.12);
 }
 
-.dark {
-  /* Same as root - always dark */
-  --background: oklch(0.12 0.005 260);
-  --foreground: oklch(0.92 0 0);
-  --card: oklch(0.16 0.008 260);
-  --card-foreground: oklch(0.92 0 0);
-  --popover: oklch(0.14 0.006 260);
-  --popover-foreground: oklch(0.92 0 0);
-  --primary: oklch(0.70 0.19 148);
-  --primary-foreground: oklch(0.12 0 0);
-  --secondary: oklch(0.22 0.01 260);
-  --secondary-foreground: oklch(0.85 0 0);
-  --muted: oklch(0.20 0.008 260);
-  --muted-foreground: oklch(0.60 0 0);
-  --accent: oklch(0.70 0.19 148);
-  --accent-foreground: oklch(0.12 0 0);
-  --destructive: oklch(0.55 0.22 25);
-  --destructive-foreground: oklch(0.95 0 0);
-  --border: oklch(0.28 0.015 260);
-  --input: oklch(0.20 0.01 260);
-  --ring: oklch(0.70 0.19 148);
-  --chart-1: oklch(0.70 0.19 148);
-  --chart-2: oklch(0.65 0.18 145);
-  --chart-3: oklch(0.75 0.18 75);
-  --chart-4: oklch(0.55 0.22 25);
-  --chart-5: oklch(0.65 0.18 145);
-  --sidebar: oklch(0.10 0.006 260);
-  --sidebar-foreground: oklch(0.88 0 0);
-  --sidebar-primary: oklch(0.70 0.19 148);
-  --sidebar-primary-foreground: oklch(0.12 0 0);
-  --sidebar-accent: oklch(0.18 0.01 260);
-  --sidebar-accent-foreground: oklch(0.88 0 0);
-  --sidebar-border: oklch(0.24 0.012 260);
-  --sidebar-ring: oklch(0.70 0.19 148);
+.dark,
+.crt {
+  --background: oklch(0.17 0.003 285);
+  --foreground: oklch(0.94 0.002 285);
+  --sidebar: oklch(0.145 0.003 285);
+  --sidebar-foreground: oklch(0.72 0.005 285);
+  --card: oklch(0.195 0.004 285);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.205 0.004 285);
+  --popover-foreground: var(--foreground);
+  --surface: oklch(0.2 0.004 285);
+  --surface-hover: oklch(0.235 0.005 285);
+  --primary: oklch(0.66 0.16 277);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.23 0.004 285);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.22 0.004 285);
+  --muted-foreground: oklch(0.66 0.006 285);
+  --subtle-foreground: oklch(0.52 0.006 285);
+  --accent: oklch(0.24 0.005 285);
+  --accent-foreground: var(--foreground);
+  --destructive: oklch(0.65 0.19 22);
+  --destructive-foreground: oklch(0.99 0 0);
+  --positive: oklch(0.72 0.13 160);
+  --warning: oklch(0.78 0.13 75);
+  --border: oklch(0.255 0.004 285);
+  --border-strong: oklch(0.31 0.005 285);
+  --input: oklch(0.29 0.005 285);
+  --ring: oklch(0.66 0.16 277);
+  --shadow-popover: 0 0 0 1px rgb(255 255 255 / 0.04), 0 12px 32px -8px rgb(0 0 0 / 0.6);
 }
+
 
 @theme inline {
-  --font-sans: 'Geist', 'Geist Fallback';
-  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  --color-subtle-foreground: var(--subtle-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-positive: var(--positive);
   --color-warning: var(--warning);
-  --color-warning-foreground: var(--warning-foreground);
-  --color-success: var(--success);
-  --color-success-foreground: var(--success-foreground);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 3px);
+  --radius-md: calc(var(--radius) - 1px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
+  --shadow-popover: var(--shadow-popover);
 }
 
 @layer base {
   html,
   body {
     height: 100%;
-    overflow: hidden;
   }
 
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
+    font-size: 14px;
+  }
+
+  ::selection {
+    background: color-mix(in oklch, var(--primary) 28%, transparent);
+  }
+
+  /* Tailwind v4 leaves buttons with the default arrow; anything clickable gets the hand. */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  [role='tab'],
+  [role='menuitem'],
+  [role='option'],
+  summary,
+  label[for] {
+    cursor: pointer;
   }
 
   * {
-    scrollbar-color: rgba(255, 255, 255, 0.16) rgba(255, 255, 255, 0.03);
-  }
-
-  *::-webkit-scrollbar {
-    width: 12px;
-    height: 12px;
-  }
-
-  *::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.03);
-  }
-
-  *::-webkit-scrollbar-thumb {
-    border: 3px solid transparent;
-    border-radius: 999px;
-    background-color: rgba(255, 255, 255, 0.16);
-    background-clip: padding-box;
-  }
-
-  *::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(255, 255, 255, 0.24);
-  }
-
-  *::-webkit-scrollbar-corner {
-    background: transparent;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklch, var(--foreground) 16%, transparent) transparent;
   }
 
   input[type='number']::-webkit-outer-spin-button,
@@ -201,15 +155,1265 @@
     -moz-appearance: textfield;
     appearance: textfield;
   }
+
+  img.pixel {
+    image-rendering: pixelated;
+  }
 }
 
-@layer utilities {
-  .scrollbar-none {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+
+/* ---------------------------------------------------------------------- */
+/* CRT theme: the game's own post-processing (Retro Look Pro "FF_PPFX"),   */
+/* rebuilt from its settings. See components/crt-glass.tsx for the values. */
+/* ---------------------------------------------------------------------- */
+@layer base {
+  .crt body {
+    background: #000;
   }
 
-  .scrollbar-none::-webkit-scrollbar {
+  /* CRT Aperture input gamma + halation, colour-grading contrast +10. */
+  .crt[data-crt-gl] .app-screen {
+    filter: url(#crt-aperture) contrast(1.1);
+  }
+
+  /* Glitch3 bursts (toggled from JS). */
+  .crt[data-crt-gl][data-crt-glitch] .app-screen {
+    filter: url(#crt-glitch) url(#crt-aperture) contrast(1.1);
+  }
+
+  /* Phosphor (fade 0.025/frame): highlights light up instantly and decay slowly. */
+  .crt .app-screen :is(button, a, .term-record) {
+    transition: background-color 0.65s ease-out, color 0.65s ease-out, text-decoration-color 0.65s ease-out;
+  }
+  .crt .app-screen :is(button, a, .term-record):hover {
+    transition-duration: 0s;
+  }
+
+  /* Fallback when WebGL2 is unavailable: aperture mask, brightness and a square vignette in CSS. */
+  .crt:not([data-crt-gl]) .app-screen {
+    filter: contrast(1.1) brightness(0.85);
+  }
+  .crt:not([data-crt-gl]) body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    pointer-events: none;
+    mix-blend-mode: multiply;
+    background:
+      radial-gradient(130% 130% at 50% 50%, transparent 62%, #000 100%),
+      repeating-linear-gradient(90deg, rgb(255 174 255) 0 1px, rgb(174 255 174) 1px 2px);
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Terminal UI (CRT theme only): components/terminal/*                     */
+/* ---------------------------------------------------------------------- */
+@layer components {
+  .term {
+    --t-fg: #7dffa6;
+    --t-bg: #050a07;
+    --t-glow: #5aff8c38;
+    --t-dim: color-mix(in srgb, var(--t-fg) 58%, var(--t-bg));
+    --t-faint: color-mix(in srgb, var(--t-fg) 34%, var(--t-bg));
+    --t-line: color-mix(in srgb, var(--t-fg) 13%, var(--t-bg));
+    --t-cyan: color-mix(in oklab, #62d8ff 78%, var(--t-fg));
+    --t-mint: color-mix(in oklab, #62f0a0 78%, var(--t-fg));
+    --t-gold: color-mix(in oklab, #ffcf4d 78%, var(--t-fg));
+    --t-magenta: color-mix(in oklab, #ff7ad9 78%, var(--t-fg));
+    --t-violet: color-mix(in oklab, #b49cff 78%, var(--t-fg));
+    --t-orange: color-mix(in oklab, #ff9f5a 78%, var(--t-fg));
+    --t-red: color-mix(in oklab, #ff6b6b 85%, var(--t-fg));
+
+    flex: 1;
+    min-width: 0;
+    background: var(--t-bg);
+    color: var(--t-fg);
+    font-family: var(--font-mono);
+    font-size: 15px;
+    line-height: 1.6;
+    font-variant-ligatures: none;
+    text-shadow: 0 0 1px var(--t-glow), 0 0 4px var(--t-glow);
+  }
+
+  .term ::selection {
+    background: var(--t-fg);
+    color: var(--t-bg);
+    text-shadow: none;
+  }
+
+  /* Terminal scroll areas: space for the scrollbar is always reserved (so the column never
+     shifts), and the bar itself is styled below. Chrome only honours the ::-webkit-scrollbar
+     styling while the standard scrollbar-* properties are left at auto. */
+  .term-scroll,
+  .term-screen-body {
+    scrollbar-gutter: stable;
+    scrollbar-width: auto;
+    scrollbar-color: auto;
+  }
+  /* The scrolling area is the terminal's own column, so the scrollbar sits at its right edge
+     (inside the "window") rather than at the far edge of the screen. */
+  .term-scroll {
+    max-width: 1180px;
+    margin-inline: auto;
+  }
+  /* Firefox only has the standard properties: a thin phosphor bar. */
+  @supports (-moz-appearance: none) {
+    .term-scroll,
+    .term-screen-body {
+      scrollbar-width: thin;
+      scrollbar-color: var(--t-dim) transparent;
+    }
+  }
+  /* A short rail: a thin solid line over the middle half of the column's height
+     (the track's margins trim a quarter off each end). */
+  .term-scroll::-webkit-scrollbar,
+  .term-screen-body::-webkit-scrollbar {
+    width: 12px;
+  }
+  .term-scroll::-webkit-scrollbar-track,
+  .term-screen-body::-webkit-scrollbar-track {
+    margin-block: 25vh;
+    background: linear-gradient(var(--t-line), var(--t-line)) center / 2px 100% no-repeat;
+  }
+  /* The thumb: a solid, thicker bar riding the rail; brighter on hover, glowing while dragged. */
+  .term-scroll::-webkit-scrollbar-thumb,
+  .term-screen-body::-webkit-scrollbar-thumb {
+    min-height: 28px;
+    border: solid transparent;
+    border-width: 0 3px;
+    border-radius: 0;
+    background: var(--t-dim) padding-box;
+  }
+  .term-scroll::-webkit-scrollbar-thumb:hover,
+  .term-screen-body::-webkit-scrollbar-thumb:hover {
+    background: var(--t-fg) padding-box;
+  }
+  .term-scroll::-webkit-scrollbar-thumb:active,
+  .term-screen-body::-webkit-scrollbar-thumb:active {
+    background: var(--t-fg) padding-box;
+    box-shadow: 0 0 10px var(--t-glow);
+  }
+  .term-scroll::-webkit-scrollbar-button,
+  .term-screen-body::-webkit-scrollbar-button {
     display: none;
+  }
+  .term-scroll::-webkit-scrollbar-corner,
+  .term-screen-body::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  .term-inner {
+    display: flex;
+    min-height: 100%;
+    flex-direction: column;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: clamp(24px, 6vh, 64px) clamp(16px, 6vw, 80px) clamp(20px, 4vh, 40px);
+  }
+
+  .term-brand {
+    display: flex;
+    align-items: baseline;
+    gap: 1.2ch;
+    margin: 0 0 18px;
+    font-size: 17px;
+    font-weight: 700;
+  }
+  .term-brand-meta {
+    margin-left: auto;
+    font-size: 13px;
+    font-weight: 400;
+  }
+
+  .term-entry {
+    margin-bottom: 14px;
+  }
+
+  .term-prompt {
+    display: flex;
+    align-items: baseline;
+    gap: 1.2ch;
+    font-size: 16px;
+  }
+  .term-prompt--history {
+    margin-bottom: 6px;
+  }
+  .term-prompt label,
+  .term-prompt > span:first-child {
+    flex: none;
+    font-weight: 700;
+  }
+
+  .term-input {
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: var(--t-fg);
+    font: inherit;
+    font-weight: 600;
+    text-shadow: inherit;
+    caret-color: var(--t-fg);
+    caret-shape: block;
+  }
+  .term-input::placeholder {
+    color: var(--t-faint);
+    font-weight: 400;
+    text-shadow: none;
+  }
+
+  .term-output {
+    font-size: 14.5px;
+  }
+  .term-line {
+    margin: 0;
+  }
+  .term-text {
+    margin: 0;
+    font: inherit;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .term-blank {
+    height: 0.8em;
+  }
+
+  .term-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 1ch;
+    margin-bottom: 4px;
+  }
+  .term-actions {
+    margin-left: auto;
+    display: inline-flex;
+    gap: 1ch;
+  }
+  .term-action {
+    color: var(--t-dim);
+  }
+  .term-action:hover {
+    color: var(--t-fg);
+  }
+
+  .term-record {
+    display: grid;
+    grid-template-columns: 6ch minmax(12ch, 26ch) minmax(0, auto) minmax(0, 1fr);
+    align-items: baseline;
+    column-gap: 2ch;
+    padding: 1px 0;
+  }
+  .term-record:hover {
+    background: color-mix(in srgb, var(--t-fg) 5%, transparent);
+  }
+  .term-key {
+    overflow: hidden;
+    color: var(--t-dim);
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .term-value {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+  .term-note {
+    overflow: hidden;
+    color: var(--t-faint);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  @media (max-width: 640px) {
+    .term-record {
+      grid-template-columns: 6ch minmax(0, 1fr);
+    }
+    .term-value,
+    .term-note {
+      grid-column: 2;
+    }
+  }
+
+  .term-badge {
+    justify-self: start;
+    padding: 0 0.6ch;
+    color: var(--t-bg);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.5;
+    text-shadow: none;
+    background: var(--t-fg);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--badge, var(--t-fg)) 40%, transparent);
+  }
+  .term-badge--cyan { --badge: var(--t-cyan); background: var(--t-cyan); }
+  .term-badge--mint { --badge: var(--t-mint); background: var(--t-mint); }
+  .term-badge--gold { --badge: var(--t-gold); background: var(--t-gold); }
+  .term-badge--magenta { --badge: var(--t-magenta); background: var(--t-magenta); }
+  .term-badge--violet { --badge: var(--t-violet); background: var(--t-violet); }
+  .term-badge--orange { --badge: var(--t-orange); background: var(--t-orange); }
+  .term-badge--red { --badge: var(--t-red); background: var(--t-red); }
+  .term-badge--dim { --badge: var(--t-faint); background: var(--t-faint); }
+
+  .term-error {
+    color: var(--t-red);
+  }
+
+  .term-fg { color: var(--t-fg); }
+  .term-dim { color: var(--t-dim); }
+  .term-faint { color: var(--t-faint); }
+  .term-cyan { color: var(--t-cyan); }
+  .term-mint { color: var(--t-mint); }
+  .term-gold { color: var(--t-gold); }
+  .term-bold { font-weight: 700; }
+
+  .term-link {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--t-faint);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.22em;
+    cursor: pointer;
+  }
+  .term-link:hover {
+    text-decoration-color: currentColor;
+  }
+  .term button:focus-visible {
+    outline: 1px solid var(--t-fg);
+    outline-offset: 2px;
+  }
+
+  /* Inline forms (show / edit). */
+  .term-form {
+    margin: 2px 0;
+  }
+  .term-row {
+    grid-template-columns: 6ch minmax(12ch, 24ch) minmax(0, auto) minmax(0, 1fr);
+    padding: 1px 0.5ch;
+    margin: 0 -0.5ch;
+  }
+  .term-row:focus-within {
+    background: color-mix(in srgb, var(--t-fg) 8%, transparent);
+  }
+  .term-row:focus-within .term-key {
+    color: var(--t-fg);
+  }
+  .term-controls {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5ch 2ch;
+  }
+  .term-field {
+    min-width: 0;
+    padding: 0 0.5ch;
+    border: 0;
+    border-bottom: 1px dashed var(--t-faint);
+    border-radius: 0;
+    outline: none;
+    background: transparent;
+    color: var(--t-fg);
+    font: inherit;
+    font-weight: 600;
+    text-shadow: inherit;
+    caret-color: var(--t-fg);
+    caret-shape: block;
+  }
+  .term-field--num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .term-field--dim {
+    color: var(--t-faint);
+  }
+  .term-field:focus {
+    border-bottom-style: solid;
+    border-bottom-color: var(--t-fg);
+    background: color-mix(in srgb, var(--t-fg) 10%, transparent);
+  }
+  .term-field::selection {
+    background: var(--t-fg);
+    color: var(--t-bg);
+  }
+  .term-num {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.3ch;
+  }
+  .term-enum,
+  .term-check {
+    padding: 0 0.3ch;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .term-check {
+    color: var(--t-dim);
+  }
+  .term-check--on {
+    color: var(--t-fg);
+  }
+  .term-enum:focus-visible,
+  .term-check:focus-visible,
+  .term-action:focus-visible {
+    outline: none;
+    background: var(--t-fg);
+    color: var(--t-bg);
+    text-shadow: none;
+  }
+  .term-enum:focus-visible .term-faint {
+    color: var(--t-bg);
+  }
+  .term-action--danger:hover,
+  .term-action--danger:focus-visible {
+    color: var(--t-red);
+  }
+  .term-action--danger:focus-visible {
+    background: var(--t-red);
+    color: var(--t-bg);
+  }
+  .term-filter {
+    display: flex;
+    align-items: baseline;
+    gap: 1ch;
+    margin: 2px 0 4px;
+  }
+  .term-field--filter {
+    width: 24ch;
+    font-weight: 400;
+  }
+  .term-form-hint {
+    margin-top: 6px;
+    font-size: 12.5px;
+  }
+  @media (max-width: 640px) {
+    .term-row {
+      grid-template-columns: 6ch minmax(0, 1fr);
+    }
+    .term-controls,
+    .term-row .term-note {
+      grid-column: 2;
+    }
+  }
+
+  /* New output wipes in line by line, like the reference. */
+  .term-reveal {
+    animation: term-wipe 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* The prompt comes back once output has finished printing. Kept focusable
+     (opacity, not visibility) so Enter can skip ahead. */
+  .term-prompt--busy {
+    opacity: 0;
+  }
+  @keyframes term-wipe {
+    from { clip-path: inset(0 100% 0 0); filter: brightness(2); }
+    to { clip-path: inset(0 0 0 0); filter: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .term-reveal { animation: none; }
+  }
+}
+
+@layer components {
+  .term-enum {
+    display: inline-flex;
+    justify-content: space-between;
+    gap: 1ch;
+    text-align: left;
+  }
+  .term-columns {
+    font-size: 12.5px;
+  }
+  .term-columns:hover {
+    background: none;
+  }
+}
+
+/* Single-value rows share one left-aligned value column, whatever the type. */
+@layer components {
+  .term-controls--single {
+    /* Set per form from its widest content (see singleColumnWidth in forms.tsx). */
+    width: var(--single-width, 24ch);
+  }
+  .term-controls--single > .term-field,
+  .term-controls--single > .term-num,
+  .term-controls--single > .term-enum {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  .term-controls--single .term-num {
+    display: flex;
+  }
+  .term-controls--single .term-num > .term-field {
+    flex: 1;
+    width: auto !important;
+  }
+  .term-controls--single .term-field {
+    text-align: left;
+  }
+  .term-controls--single > .term-enum {
+    padding-left: 0;
+  }
+  .term-controls--single > .term-check {
+    padding-left: 0;
+  }
+  .term-controls--single > .term-field,
+  .term-controls--single .term-num > .term-field {
+    padding-left: 0;
+  }
+}
+
+@layer components {
+  .term-enum-label {
+    flex: 1;
+    text-align: center;
+  }
+  .term-controls--single .term-enum-label {
+    text-align: left;
+  }
+  .term-controls--single > .term-enum {
+    border-bottom: 1px dashed var(--t-faint);
+  }
+}
+
+@layer components {
+  .term-cwd {
+    flex: none;
+    color: var(--t-cyan);
+    font-weight: 700;
+  }
+}
+
+@layer components {
+  /* `credits`: neofetch-style block, logo left and details right. */
+  .term-fetch {
+    --t-fairyland: #ff3366;
+    display: flex;
+    align-items: center;
+    gap: 1rem 2rem;
+    margin-block: 0.5rem;
+  }
+
+  .term-fetch-art {
+    flex: none;
+    margin: 0;
+    /* Same size as the rest of the text; only the lines are tightened so the art reads as one shape. */
+    font-size: inherit;
+    line-height: 1.02;
+    color: var(--t-fairyland);
+    text-shadow: 0 0 6px color-mix(in oklab, var(--t-fairyland) 55%, transparent);
+    white-space: pre;
+    user-select: none;
+  }
+  .term-fetch-info {
+    min-width: 0;
+    white-space: nowrap;
+    line-height: 1.55;
+  }
+  .term-fetch-title,
+  .term-fetch-key {
+    color: var(--t-fairyland);
+    font-weight: 700;
+  }
+  .term-fetch-swatches {
+    display: flex;
+    gap: 0;
+    margin-top: 0.6rem;
+  }
+  .term-swatch {
+    display: inline-block;
+    width: 1.6em;
+    height: 1em;
+  }
+  .term-swatch--fetch-0 { background: var(--t-fairyland); }
+  .term-swatch--red { background: var(--t-red); }
+  .term-swatch--mint { background: var(--t-mint); }
+  .term-swatch--gold { background: var(--t-gold); }
+  .term-swatch--cyan { background: var(--t-cyan); }
+  .term-swatch--magenta { background: var(--t-magenta); }
+  .term-swatch--violet { background: var(--t-violet); }
+  .term-swatch--fg { background: var(--t-fg); }
+}
+
+@layer components {
+  /* Inline suggestion: the typed text (invisible) followed by the faint rest, behind the input. */
+  .term-input-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    display: flex;
+  }
+  .term-input-wrap .term-input {
+    position: relative;
+    z-index: 1;
+  }
+  .term-ghost {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    white-space: pre;
+    pointer-events: none;
+    font-weight: 600;
+  }
+  .term-ghost-typed {
+    color: transparent;
+  }
+  .term-ghost-rest {
+    color: var(--t-faint);
+    font-weight: 400;
+    text-shadow: none;
+  }
+  .term-ghost-key {
+    margin-left: 1.5ch;
+    padding: 0 0.6ch;
+    border: 1px solid color-mix(in srgb, var(--t-faint) 60%, transparent);
+    color: var(--t-faint);
+    font-size: 0.7em;
+    font-weight: 400;
+    vertical-align: 0.15em;
+    text-shadow: none;
+  }
+}
+
+@layer components {
+  /* `diff`: one focusable row per change; list entries sit indented under their field. */
+  .term-diff-row {
+    display: grid;
+    grid-template-columns: 6ch minmax(12ch, 26ch) minmax(0, 1fr) auto;
+    align-items: baseline;
+    column-gap: 2ch;
+    width: 100%;
+    padding: 1px 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .term-diff-label {
+    overflow: hidden;
+    color: var(--t-dim);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .term-diff-detail {
+    overflow: hidden;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* Entries keep the badge column; their name sits in the value column behind a left border,
+     so a list's entries read as one block under the field. */
+  .term-diff-row--nested {
+    padding: 0;
+  }
+  .term-diff-entry {
+    display: flex;
+    gap: 2ch;
+    min-width: 0;
+    padding: 1px 0 1px 1.5ch;
+    border-left: 2px solid var(--t-faint);
+    white-space: nowrap;
+  }
+  .term-diff-entry-label {
+    overflow: hidden;
+    font-weight: 600;
+    text-overflow: ellipsis;
+  }
+  .term-diff-entry-detail {
+    overflow: hidden;
+    color: var(--t-dim);
+    text-overflow: ellipsis;
+  }
+  .term-diff-row--nested:focus-visible .term-diff-entry {
+    border-left-color: var(--t-fg);
+  }
+  .term-diff-undo {
+    color: var(--t-faint);
+    opacity: 0;
+  }
+  .term-diff-row:hover {
+    background: color-mix(in srgb, var(--t-fg) 5%, transparent);
+  }
+  .term-diff-row:hover .term-diff-undo,
+  .term-diff-row:focus-visible .term-diff-undo {
+    opacity: 1;
+  }
+  .term-diff-row:focus-visible {
+    outline: none;
+    background: color-mix(in srgb, var(--t-fg) 12%, transparent);
+  }
+  .term-diff-row:focus-visible .term-diff-undo {
+    color: var(--t-fg);
+  }
+}
+
+@layer components {
+  /* Undone changes, waiting to be redone: struck through and faded. */
+  .term-diff-undone {
+    margin-top: 0.5rem;
+  }
+  .term-diff-row--undone .term-badge {
+    opacity: 0.45;
+  }
+  .term-diff-row--undone .term-diff-label,
+  .term-diff-row--undone .term-diff-detail,
+  .term-diff-row--undone .term-diff-entry-label,
+  .term-diff-row--undone .term-diff-entry-detail {
+    color: var(--t-faint);
+    text-decoration: line-through;
+    text-decoration-thickness: 1px;
+  }
+  .term-diff-row--undone:focus-visible .term-diff-label,
+  .term-diff-row--undone:focus-visible .term-diff-detail,
+  .term-diff-row--undone:focus-visible .term-diff-entry-label {
+    color: var(--t-dim);
+  }
+}
+
+@layer components {
+  /* Full-screen view (edit/show/diff), like nano: title bar, body, key bar. */
+  .term-screen {
+    height: 100%;
+    min-height: 0;
+    background: var(--t-bg);
+    color: var(--t-fg);
+  }
+  /* Matches .term-inner: same max width and padding as the terminal itself. */
+  .term-screen-frame {
+    display: flex;
+    height: 100%;
+    min-height: 0;
+    flex-direction: column;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: clamp(24px, 6vh, 64px) clamp(16px, 6vw, 80px) clamp(20px, 4vh, 40px);
+  }
+  .term-screen-bar {
+    display: flex;
+    flex: none;
+    align-items: baseline;
+    gap: 3ch;
+    padding: 4px 1.5ch;
+    background: var(--t-fg);
+    color: var(--t-bg);
+    text-shadow: none;
+    font-size: 14px;
+  }
+  .term-screen-path {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .term-screen-body {
+    flex: 1;
+    min-height: 0;
+    overflow-x: hidden; /* the focus ring can poke a few px past the edge; never scroll sideways */
+    overflow-y: auto;
+    padding: 20px 0;
+    font-size: 14.5px;
+  }
+  .term-screen-keys {
+    display: flex;
+    flex: none;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem 3ch;
+    padding: 10px 0 0;
+    border-top: 1px solid var(--t-line);
+    color: var(--t-dim);
+    font-size: 13px;
+  }
+  .term-screen-keys kbd {
+    padding: 0 0.6ch;
+    background: var(--t-dim);
+    color: var(--t-bg);
+    font: inherit;
+    font-weight: 700;
+    text-shadow: none;
+  }
+  /* After one Esc: the bar asks before leaving. */
+  .term-screen-keys--confirm {
+    color: var(--t-gold);
+  }
+  .term-screen-keys--confirm kbd {
+    background: var(--t-gold);
+  }
+  .term-screen-close {
+    margin-left: auto;
+  }
+
+  /* Entries of a list in printed output: in the value column behind a left border. */
+  .term-value--nested {
+    padding-left: 1.5ch;
+    border-left: 2px solid var(--t-faint);
+  }
+}
+
+@layer components {
+  .term-key-button {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+  }
+  .term-key-button:hover {
+    color: var(--t-fg);
+  }
+  .term-key-button:hover kbd {
+    background: var(--t-fg);
+  }
+  .term-header--actions {
+    justify-content: flex-end;
+  }
+}
+
+@layer components {
+  /* Summary printed when a full-screen view closes. */
+  .term-changes {
+    margin-block: 2px 4px;
+  }
+  .term-changes-head {
+    display: flex;
+    align-items: baseline;
+    gap: 1.5ch;
+    margin-bottom: 4px;
+  }
+  .term-changes-dot {
+    color: var(--t-gold);
+    font-size: 0.8em;
+  }
+  .term-changes-dot--saved {
+    color: var(--t-mint);
+  }
+  .term-changes-actions {
+    margin-left: auto;
+  }
+  .term-changes-field {
+    padding-left: 3ch;
+  }
+  .term-changes-row {
+    display: grid;
+    grid-template-columns: minmax(12ch, 26ch) minmax(0, 1fr);
+    column-gap: 2ch;
+    align-items: baseline;
+  }
+  .term-changes-label {
+    overflow: hidden;
+    color: var(--t-dim);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .term-changes-from {
+    color: var(--t-faint);
+  }
+  .term-changes-arrow {
+    color: var(--t-dim);
+  }
+  .term-changes-to {
+    font-weight: 700;
+  }
+  /* List entries sit under the value column behind a left border. */
+  .term-changes-entries {
+    margin: 2px 0 4px 28ch; /* label column (26ch) + gap */
+    padding-left: 1.5ch;
+    border-left: 2px solid var(--t-faint);
+  }
+  .term-changes-sign {
+    display: inline-block;
+    width: 2ch;
+    font-weight: 700;
+  }
+  .term-changes-sign--add { color: var(--t-mint); }
+  .term-changes-sign--remove { color: var(--t-red); }
+  .term-changes-sign--change { color: var(--t-gold); }
+}
+
+@layer components {
+  /* Bottom status bar of the terminal: keys on the left, each open save's state on the right. */
+  .term-statusbar {
+    flex: none;
+    border-top: 1px solid var(--t-line);
+  }
+  .term-statusbar-inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem 3ch;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 10px clamp(16px, 6vw, 80px) 14px;
+    color: var(--t-dim);
+    font-size: 13px;
+  }
+  .term-statusbar kbd {
+    padding: 0 0.6ch;
+    background: var(--t-dim);
+    color: var(--t-bg);
+    font: inherit;
+    font-weight: 700;
+    text-shadow: none;
+  }
+  .term-statusbar-state {
+    margin-left: auto;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--t-faint);
+    font: inherit;
+    white-space: nowrap;
+  }
+  .term-statusbar-state--dirty {
+    color: var(--t-dim);
+    cursor: pointer;
+  }
+  .term-statusbar-state--dirty:hover {
+    color: var(--t-fg);
+  }
+  /* After Esc at an empty prompt: the bar asks before leaving the CRT view. */
+  .term-statusbar--confirm {
+    color: var(--t-gold);
+  }
+  .term-statusbar--confirm kbd {
+    background: var(--t-gold);
+  }
+  .term-statusbar-dot {
+    color: var(--t-gold);
+    font-size: 0.8em;
+  }
+}
+
+@layer components {
+  /* Start-screen intro. One rail at x = 0.5ch; content starts at 3ch. Rows are 1.5em tall,
+     so a row's centre is 0.75em down: markers, corners and box lines all meet there. */
+  .term-intro {
+    --rail: var(--t-faint);
+    position: relative;
+    padding-left: 3ch;
+    line-height: 1.5;
+  }
+  .term-intro::before {
+    content: '';
+    position: absolute;
+    top: 0.75em;
+    bottom: 0.75em;
+    left: 0.5ch;
+    border-left: 1px solid var(--rail);
+  }
+  /* ┌ and └: a stub from the rail across to the content. */
+  .term-intro-start,
+  .term-intro-end {
+    position: relative;
+  }
+  .term-intro-start {
+    margin-bottom: 1em;
+  }
+  .term-intro-start::before,
+  .term-intro-end::before {
+    content: '';
+    position: absolute;
+    top: 0.75em;
+    left: -2.5ch;
+    width: 1.8ch;
+    border-top: 1px solid var(--rail);
+  }
+  .term-intro-pill {
+    padding: 0 1ch;
+    background: var(--t-fg);
+    color: var(--t-bg);
+    font-weight: 700;
+    text-shadow: none;
+  }
+  /* ◇ on the rail, with the background behind it so the rail doesn't show through. */
+  .term-intro-mark {
+    position: absolute;
+    top: 0;
+    left: -3ch;
+    width: 1ch;
+    background: var(--t-bg);
+    color: var(--t-mint);
+    text-align: center;
+  }
+  .term-intro-step {
+    position: relative;
+    margin-bottom: 1em;
+  }
+  /* Boxes start on the rail: ◇ title ───╮, a body with a right edge, then ├───╯ back into the rail. */
+  .term-intro-box {
+    position: relative;
+    /* One width for every box, so their right edges line up too. */
+    width: min(100ch, 100%);
+    margin: 0 0 1em -2.5ch;
+    padding-left: 2.5ch;
+  }
+  .term-intro-box .term-intro-mark {
+    left: -0.5ch;
+  }
+  .term-intro-box-title {
+    display: flex;
+    gap: 1.5ch;
+  }
+  .term-intro-box-title::after {
+    content: '';
+    flex: 1;
+    min-width: 2ch;
+    height: 0.75em;
+    align-self: flex-end;
+    border-top: 1px solid var(--rail);
+    border-right: 1px solid var(--rail);
+    border-top-right-radius: 4px;
+  }
+  .term-intro-box-body {
+    padding: 0.5em 2ch 0.5em 0;
+    border-right: 1px solid var(--rail);
+  }
+  .term-intro-box::after {
+    content: '';
+    display: block;
+    height: 0.75em;
+    margin-left: -2.5ch;
+    border-right: 1px solid var(--rail);
+    border-bottom: 1px solid var(--rail);
+    border-bottom-right-radius: 4px;
+  }
+  .term-intro-table {
+    display: grid;
+    column-gap: 4ch;
+  }
+}
+
+@layer components {
+  /* Label / value pairs inside the intro boxes. */
+  .term-intro-pairs {
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 3ch;
+    row-gap: 2px;
+  }
+}
+
+@layer components {
+  /* Typed pieces of the intro sit on their own box so the reveal can clip them left to right. */
+  /* Typed lines hug their text, so the left-to-right reveal moves at typing speed. */
+  .term-intro [data-type] {
+    max-width: 100%;
+  }
+  .term-intro span[data-type] {
+    display: inline-block;
+  }
+  .term-intro p[data-type] {
+    width: fit-content;
+  }
+  .term-intro-lines {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  /* While the intro types, the rail runs right down to the newest section. */
+  .term-intro--typing::before {
+    bottom: 0;
+  }
+  /* The prompt line during the intro: shows how to skip, blinking gently. */
+  .term-prompt--waiting .term-input::placeholder {
+    animation: term-blink 1.2s steps(2, start) infinite;
+  }
+  @keyframes term-blink {
+    50% {
+      opacity: 0.35;
+    }
+  }
+}
+
+@layer components {
+  /* One plain line per save; the chosen one in reverse video, like a curses menu. */
+  .term-save-row {
+    display: grid;
+    grid-template-columns: minmax(16ch, max-content) auto;
+    column-gap: 3ch;
+    align-items: baseline;
+    width: 100%;
+    padding: 0 1ch;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+  }
+  .term-save-status {
+    color: var(--t-dim);
+  }
+  .term-save-group {
+    margin: 0 0 0.25rem;
+    color: var(--t-dim);
+    font-weight: 700;
+  }
+  .term-save-group:not(:first-child) {
+    margin-top: 1rem;
+  }
+  .term .term-save-row:focus,
+  .term .term-save-row:focus-visible {
+    outline: none;
+    box-shadow: none;
+    background: var(--t-fg);
+    color: var(--t-bg);
+    text-shadow: none;
+  }
+  .term-save-row:focus .term-save-status {
+    color: var(--t-bg);
+  }
+}
+
+/* Normal editor: the page is a panel on the window (sidebar) colour; saves are tabs above it.
+   The active tab shares the panel's background, covers its top border, and curves into it. */
+@layer components {
+  .app-panel {
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px;
+    background: var(--background);
+  }
+  .app-tab {
+    --tab-r: 10px;
+    position: relative;
+    display: flex;
+    min-width: 96px;
+    max-width: 240px;
+    height: 34px;
+    flex-shrink: 1;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0 6px 0 12px;
+    border-radius: var(--tab-r) var(--tab-r) 0 0;
+    color: var(--muted-foreground);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 120ms, color 120ms;
+  }
+  .app-tab:not(.app-tab--active):hover {
+    background: color-mix(in oklab, var(--accent) 70%, transparent);
+    color: var(--foreground);
+  }
+  .app-tab:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: -2px;
+  }
+  /* No borders: the active tab is just the page's colour, so it reads as part of the page. */
+  .app-tab--active {
+    z-index: 2;
+    background: var(--background);
+    color: var(--foreground);
+  }
+  /* The little outward curves where the active tab meets the panel's top edge. */
+  .app-tab--active::before,
+  .app-tab--active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    width: var(--tab-r);
+    height: var(--tab-r);
+    pointer-events: none;
+  }
+  .app-tab--active::before {
+    left: calc(-1 * var(--tab-r));
+    background: radial-gradient(circle at 0 0, transparent calc(var(--tab-r) - 0.5px), var(--background) calc(var(--tab-r) + 0.5px));
+  }
+  .app-tab--active::after {
+    right: calc(-1 * var(--tab-r));
+    background: radial-gradient(circle at 100% 0, transparent calc(var(--tab-r) - 0.5px), var(--background) calc(var(--tab-r) + 0.5px));
+  }
+}
+
+@layer components {
+  /* The section column inside the page: a touch darker than the page, like a sidebar within it. */
+  .app-section-nav {
+    background: color-mix(in oklab, var(--sidebar) 45%, var(--background));
+  }
+}
+
+@layer components {
+  /* Placeholder lines (e.g. "+ new sale") stay quiet until you use them. */
+  .term-row--ghost {
+    opacity: 0.5;
+  }
+  .term-row--ghost:hover,
+  .term-row--ghost:focus-within {
+    opacity: 1;
+  }
+}
+
+@layer components {
+  /* Lucide icons in the terminal: text-sized, on the baseline, in the text's colour. */
+  .term-icon {
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    vertical-align: -0.14em;
+    stroke: currentColor;
+  }
+  /* A destructive action: icon and word, padded so its highlight sits evenly round both. */
+  .term-action--danger {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4ch;
+    padding: 0 0.5ch;
+  }
+  .term-action--danger .term-icon {
+    vertical-align: 0;
+  }
+}
+
+@layer components {
+  /* sudo: a root-style prompt, and a flag in full-screen title bars. */
+  .term-root {
+    flex: none;
+    color: var(--t-red);
+    font-weight: 700;
+  }
+  .term-cwd--root {
+    color: var(--t-red);
+  }
+  /* A dark chip cut out of the green bar. */
+  .term-screen-sudo {
+    margin-left: auto;
+    padding: 0 1ch;
+    background: var(--t-bg);
+    color: var(--t-fg);
+    font-weight: 700;
+  }
+
+  /* Rows changed since the file was last saved: the label goes gold and the
+     note column shows the old value struck through (click it to put it back). */
+  .term-row--changed .term-key,
+  .term-row--changed:focus-within .term-key {
+    color: var(--t-gold);
+  }
+  .term-was {
+    justify-self: start;
+    color: var(--t-faint);
+    text-align: left;
+  }
+  .term-was s {
+    text-decoration-thickness: 1px;
+  }
+  .term-was .term-icon {
+    opacity: 0;
+  }
+  .term-was:hover,
+  .term-was:focus-visible {
+    color: var(--t-gold);
+  }
+  .term-row:hover .term-was .term-icon,
+  .term-was:focus-visible .term-icon {
+    opacity: 1;
   }
 }
